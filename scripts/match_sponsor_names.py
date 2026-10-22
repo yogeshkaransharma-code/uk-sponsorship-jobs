@@ -43,7 +43,7 @@ def get_candidates(names,registered):
         root=stem(name)
         matches=exact.get(norm,set())
         match_type="Exact register-name match"
-        if not matches and len(root)>=7 and root not in {
+        if not matches and (len(root)>=7 or (len(root)>=4 and normalized(name)!=root)) and root not in {
             "services","solutions","consulting","trading","holdings","group",
             "partners","technology","technologies","healthcare","management",
             "recruitment","energy","digital","international","education",
