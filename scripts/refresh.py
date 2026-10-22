@@ -25,7 +25,7 @@ UA = 'UK-Sponsorship-Evidence/0.2 (non-commercial project; small public-source i
 TODAY = datetime.now(timezone.utc)
 STAMP = TODAY.strftime('%Y-%m-%dT%H:%M:%SZ')
 FRESH = TODAY.strftime('%Y-%m-%d')
-SCOPE = re.compile(r'\b(uk|united kingdom|london|manchester|birmingham|bristol|glasgow|edinburgh|leeds|cambridge|oxford|cardiff|liverpool|remote uk|england|scotland|wales)\b', re.I)
+SCOPE = re.compile(r'\b(uk|united kingdom|great britain|britain|england|scotland|wales|northern ireland|london|manchester|birmingham|bristol|glasgow|edinburgh|leeds|cambridge|oxford|cardiff|liverpool|remote uk|belfast|newcastle|sheffield|nottingham|leicester|coventry|sunderland|brighton|reading|norwich|southampton|portsmouth|milton keynes|northampton|exeter|plymouth|york|derby|stoke|bath|swindon|chester|preston|luton|watford|salford|bolton|blackpool|hull|hessle|durham|aberdeen|dundee|inverness|perth|stirling|swansea|newport|bangor|wrexham|guildford|maidstone|canterbury|slough|woking|cheltenham|gloucester|harrogate|bournemouth|poole|dorset|surrey|kent|sussex|hampshire|essex|yorkshire|west midlands|east midlands|east anglia|warwickshire|west sussex|buckinghamshire|cheshire|greater manchester|lancashire|merseyside|tyne and wear)\b', re.I)
 KEYWORDS = re.compile(r'\b(account executive|sales|business development|relationship manager|account manager|client manager|client executive|account handler|broker|insurance|underwriter|underwriting|claims|renewals|customer success|consultant|commercial|partnership|financial|banking|pricing|employee benefits|client services|distribution|placements)\b', re.I)
 SPONSOR = re.compile(r'\b(visa\s+sponsorship|sponsor(?:ship|ing)?\s+(?:a\s+)?(?:skilled worker|visa|applicant|candidate)|certificate of sponsorship)\b', re.I)
 NEGATIVE = re.compile(r'(visa\s+sponsorship\s+(?:is\s+)?(?:not available|unavailable|not offered)|(?:do not|does not|don.t|doesn.t|cannot|can.t|will not|won.t|unable to|no)\s+(?:provide|offer|support|consider)?\s*(?:visa\s+)?sponsorship|no\s+(?:visa\s+)?sponsorship|(?:not\s+able|aren.t\s+able|unable)\s+to\s+(?:offer|provide|support|arrange)\s+(?:visa\s+)?sponsorship|not\s+able\s+to\s+sponsor)', re.I)
@@ -173,13 +173,58 @@ def as_text(s):
 
 def classify(text):
     # Intentional conservative rules: avoid claiming that general company support applies here.
-    if NEGATIVE.search(text): return 'exclude', 'Advert includes wording against sponsorship'
+    negative=NEGATIVE.search(text)
+    if negative: return 'unavailable',text[max(0,negative.start()-40):negative.end()+65][:210]
     if SPONSOR.search(text) and (CASE.search(text) or re.search(r'(?:right\s+candidate|not\s+(?:able|possible)\s+to\s+.{0,30}sponsor\s+.{0,50}every\s+(?:role|candidate))',text,re.I)):
         p=CASE.search(text) or SPONSOR.search(text)
         return 'conditional',text[max(0,p.start()-65):p.end()+110][:260]
     p=YES.search(text)
     if p: return 'stated',text[max(0,p.start()-40):p.end()+75][:210]
     return 'unknown','No unambiguous sponsorship promise found in the advert'
+
+def job_function(title):
+    """A browsing category, derived from the job title only."""
+    patterns = (
+        ('Insurance & Claims', r'\b(underwrit|claims|actuar|reinsurance|insurance|broker|risk engineer)'),
+        ('Sales & Relationships', r'\b(sales|account|business development|relationship|partnership|revenue|client|commercial|customer success)'),
+        ('Finance & Accounting', r'\b(finance|financial|accountan|audit|tax|treasury|controller)'),
+        ('Technology & Engineering', r'\b(software|engineer|developer|infrastructure|cyber|security|devops|platform|architect)'),
+        ('Data & Analytics', r'\b(data|analytics|analyst|scientist|machine learning|quant)'),
+        ('Risk & Compliance', r'\b(risk|compliance|legal|regulator|fraud|fincrime|aml|kyc)'),
+        ('Operations & Support', r'\b(operation|support|service|administrat|office|workforce)'),
+        ('Marketing & Communications', r'\b(marketing|brand|communication|content|editor|design)'),
+        ('People & HR', r'\b(recruit|talent|human resource|people|hrbp)'),
+        ('Product & Design', r'\b(product|design|ux|research)'),
+        ('Healthcare', r'\b(health|nurs|medical|clinic|pharmac)'),
+    )
+    for category, pattern in patterns:
+        if re.search(pattern, title, re.I):
+            return category
+    return 'Other'
+
+def experience_level(title):
+    """Title-based seniority, not a claim about years required."""
+    if re.search(r'\b(graduate|intern|apprentice|trainee)\b',title,re.I):
+        return 'Graduate / trainee'
+    if re.search(r'\b(junior|entry.level|assistant)\b',title,re.I):
+        return 'Junior / entry'
+    if re.search(r'\b(chief|ceo|cfo|cto|vp|vice president|director|head of|managing director)\b',title,re.I):
+        return 'Leadership'
+    if re.search(r'\b(senior|sr\.?|lead|principal|staff)\b',title,re.I):
+        return 'Senior'
+    return 'Not specified'
+
+def uk_location(location, country=''):
+    """Keep jobs explicitly assigned to the UK without trusting the description."""
+    country=str(country).strip().lower()
+    if country and country not in ('gb','gbr','uk','united kingdom','great britain','england','scotland','wales','northern ireland'):
+        return False
+    if country:
+        return True
+    # Certain city names also exist in North America and Australia.
+    if re.search(r'\b(cambridge,\s*ma|london,\s*(?:on|ontario|canada)|manchester,\s*nh|birmingham,\s*al)\b',location,re.I):
+        return False
+    return bool(SCOPE.search(location))
 
 def listing(source,item):
     text=as_text(item.get('descriptionPlain') or item.get('descriptionHtml') or item.get('content') or '')
@@ -190,19 +235,17 @@ def listing(source,item):
     postal = addr.get('postalAddress') or {}
     if not isinstance(postal, dict): postal = {}
     country = postal.get('addressCountry', '')
-    if not (SCOPE.search(loc) or str(country).lower() in ('gb','gbr','uk','united kingdom')): return None
-    if not KEYWORDS.search(title): return None
+    if not uk_location(loc,country): return None
     if len(text)>110000: text=text[:110000]
     status,evidence=classify(text)
-    if status=='exclude': return None
     url=item.get('jobUrl') or item.get('absolute_url') or ''
     apply_url=item.get('applyUrl') or url
     if not safe_https(url) or not safe_https(apply_url):return None
     from urllib.parse import urlparse
     allowed=('jobs.ashbyhq.com','job-boards.greenhouse.io','job-boards.eu.greenhouse.io','boards.greenhouse.io')
     if urlparse(url).hostname not in allowed or urlparse(apply_url).hostname not in allowed: return None
-    # A public employer feed alone is not proof of an actively sponsorable vacancy.
-    if status=='unknown': status='unknown' # not called confirmed, even if the employer has a licence
+    # A listing is discoverable even when it has no sponsorship offer.
+    # Never equate a licensed employer with this role being sponsored.
     role_id=hashlib.sha256(url.encode()).hexdigest()[:16]
     salary='Not disclosed'
     compensation=item.get('compensation') or {}
@@ -211,6 +254,8 @@ def listing(source,item):
     sector=source.get('sector','Sales / commercial')
     return {'id':'feed-'+role_id,'company':source['company'],'legal_name':source.get('legal_name',''),
         'title':title,'location':loc or 'UK (see advert)','category':sector,
+        'industry':source.get('industry',sector.split(' / ')[0].strip()),
+        'job_function':job_function(title),'experience_level':experience_level(title),
         'salary':salary,'sponsorship':status,'evidence':evidence,'evidence_source':'Automated text extraction from employer feed',
         'evidence_url':url,'apply_url':apply_url,'verified_on':FRESH,'posted_at':(item.get('publishedAt') or '')[:10],
         'last_seen':FRESH,'active':True,'review':'auto','summary':source.get('sector','Commercial')+' — check employer advert for role-specific sponsorship and eligibility.'}
@@ -235,12 +280,12 @@ def main():
     by_url={j['apply_url']:j for j in past}
     good=0;bad=[];seen=set()
     if not offline:
-        for src in sources[:15]:
+        for src in sources[:100]:
             try:
                 records=get_source_jobs(src)
                 good+=1
                 urls=set()
-                for i in records[:150]:
+                for i in records[:2000]:
                     job=listing(src,i)
                     if job is None:continue
                     u=job['apply_url'];urls.add(u);seen.add(u)
@@ -263,10 +308,10 @@ def main():
             latest=None
         else:
             latest=list(by_url.values())
-        # Small public index, not a scraped bulk job warehouse.
+        # Keep compact metadata (not full job descriptions), preserving source links.
         if latest is not None:
             latest.sort(key=lambda j:(j.get('last_seen',''),j.get('posted_at','')),reverse=True)
-            latest=latest[:300]
+            latest=latest[:15000]
             payload={'updated_at':FRESH,'mode':'automated','jobs':latest}
             write('jobs.json',payload)
     else: print('Offline validation: {} job cards, {} configured sources'.format(len(past),len(sources)))
