@@ -29,8 +29,10 @@ jobs:
           python-version: '3.12'
       - name: Validate importer, sponsor matches and published data
         run: python -m unittest discover -s tests -v
-      - name: Check browser JavaScript syntax
-        run: node --check site.js
+      - name: Validate browser code and job-search behaviour
+        run: |
+          node --check site.js
+          node tests/site_smoke.cjs
       - name: Build public files
         run: python scripts/build_site.py
       - name: Upload GitHub Pages artifact
