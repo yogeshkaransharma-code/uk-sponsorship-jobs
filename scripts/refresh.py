@@ -194,7 +194,7 @@ def job_function(title):
         ('Operations & Support', r'\b(operation|support|service|administrat|office|workforce)'),
         ('Marketing & Communications', r'\b(marketing|brand|communication|content|editor|design)'),
         ('People & HR', r'\b(recruit|talent|human resource|people|hrbp)'),
-        ('Product & Design', r'\b(product|design|ux|research)'),
+        ('Product & Design', r'\b(product|design|ux)'),
         ('Healthcare', r'\b(health|nurs|medical|clinic|pharmac)'),
     )
     for category, pattern in patterns:
@@ -222,7 +222,7 @@ def uk_location(location, country=''):
     if country:
         return True
     # Certain city names also exist in North America and Australia.
-    if re.search(r'\b(cambridge,\s*ma|london,\s*(?:on|ontario|canada)|manchester,\s*nh|birmingham,\s*al)\b',location,re.I):
+    if re.search(r'\b(new york|cambridge,\s*ma|london,\s*(?:on|ontario|canada)|manchester,\s*nh|birmingham,\s*al|york,\s*(?:pa|ny)|new south wales)\b',location,re.I):
         return False
     return bool(SCOPE.search(location))
 
