@@ -37,7 +37,7 @@ def build() -> dict:
     jobs_source = json.loads((DATA / "jobs.json").read_text(encoding="utf-8"))
     sponsor_source = json.loads((DATA / "sponsors.json").read_text(encoding="utf-8"))
     jobs = jobs_source.get("jobs", [])
-    bulk_files = [DATA / "bulk" / "community.json"]
+    bulk_files = [DATA / "bulk" / "community.json"] + sorted((DATA / "bulk").glob("boards-*.json"))
     headcount_files = sorted((DATA / "bulk").glob("headcount-*.json"))
     bulk_files += headcount_files if headcount_files else [DATA / "bulk" / "jobs.json"]
     for bulk_path in bulk_files:
