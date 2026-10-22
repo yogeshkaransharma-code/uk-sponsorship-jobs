@@ -1,9 +1,6 @@
 name: Recover first 13k ATS descriptions
 
 on:
-  push:
-    paths:
-      - .github/workflows/recover-all-ats.yml
   workflow_dispatch:
 
 permissions:
