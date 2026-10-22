@@ -37,8 +37,10 @@ def build() -> dict:
     jobs_source = json.loads((DATA / "jobs.json").read_text(encoding="utf-8"))
     sponsor_source = json.loads((DATA / "sponsors.json").read_text(encoding="utf-8"))
     jobs = jobs_source.get("jobs", [])
-    for filename in ("jobs.json", "community.json"):
-        bulk_path = DATA / "bulk" / filename
+    bulk_files = [DATA / "bulk" / "community.json"]
+    headcount_files = sorted((DATA / "bulk").glob("headcount-*.json"))
+    bulk_files += headcount_files if headcount_files else [DATA / "bulk" / "jobs.json"]
+    for bulk_path in bulk_files:
         if bulk_path.exists():
             bulk = json.loads(bulk_path.read_text(encoding="utf-8"))
             if not isinstance(bulk.get("jobs"), list):
@@ -86,11 +88,26 @@ def build() -> dict:
             "review", "summary", "source_attribution",
         )
     } for job in selected]
+    # Static Pages cannot query a server-side database. Split large indexes
+    # so no single public file becomes tens of megabytes.
+    chunk_paths = []
+    if len(selected) > 5000:
+        dirpath = OUT / "data" / "jobs"
+        dirpath.mkdir(parents=True)
+        for start in range(0, len(selected), 5000):
+            name = "chunk-%03d.json" % (start // 5000 + 1)
+            (dirpath / name).write_text(
+                json.dumps({"jobs": selected[start:start + 5000]},
+                           ensure_ascii=False, separators=(",", ":")) + "\n",
+                encoding="utf-8",
+            )
+            chunk_paths.append("./data/jobs/" + name)
     public_jobs = {
         "updated_at": jobs_source.get("updated_at"),
         "mode": "automated",
-        "coverage_note": "Vacancies collected from a limited set of public employer feeds. Not every UK job is indexed; a sponsor licence does not guarantee sponsorship.",
-        "jobs": selected,
+        "coverage_note": "All collected jobs; visa sponsorship not implied. Check original employer advert.",
+        "jobs": [] if chunk_paths else selected,
+        "chunks": chunk_paths,
         "source_count": len(selected),
     }
     linked = {str(x) for job in selected for x in (job.get("company"), job.get("legal_name")) if x}
