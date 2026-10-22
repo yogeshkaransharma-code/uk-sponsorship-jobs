@@ -65,10 +65,11 @@ function renderCard(j){
   const excerpt=String(j.description_excerpt||"").trim();
   let description="";
   if(excerpt){
+    const short=excerpt.length>290?excerpt.slice(0,290).replace(/\s+\S*$/,"")+"…":excerpt;
     description='<div class="role-summary"><span class="evidence-label">From the job advert</span>'+
-      '<p>'+escapeHtml(excerpt)+'</p></div>';
-  } else {
-    description='<p class="role-missing">Job description not in our current data. Read the original employer advert for responsibilities and requirements.</p>';
+      '<p>'+escapeHtml(short)+'</p>'+
+      (excerpt.length>290?'<details class="role-expand"><summary>Read more about this role</summary><p>'+escapeHtml(excerpt)+'</p></details>':"")+
+      '</div>';
   }
   const h=companyData(j).history||[];
   const source=j.evidence_source||"Employer listing";
