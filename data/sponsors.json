@@ -1,6 +1,8 @@
 {
-  "updated_at": null,
+  "updated_at": "2026-10-22T17:43:34Z",
   "official_register_url": "https://www.gov.uk/government/publications/register-of-licensed-sponsors-workers",
-  "note": "Daily register sync not yet run. Never confuse employer advert wording with legal entity licensing or past CoS assignments.",
+  "source_csv": "https://assets.publishing.service.gov.uk/media/6ad9bef8b62d80a107bc5b43/SP_-_Worker_and_Temporary_Worker_Web_Register_-_2026-10-22.csv",
+  "rows_read": 143192,
+  "note": "Official register checked daily. Exact brand matches still need legal-entity verification. First observed here is not a licence start date. Missing CoS history is unknown, never zero.",
   "companies": {}
 }
