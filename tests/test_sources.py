@@ -7,6 +7,15 @@ ROOT=Path(__file__).resolve().parents[1]
 spec=importlib.util.spec_from_file_location('refresh', ROOT/'scripts'/'refresh.py')
 r=importlib.util.module_from_spec(spec); spec.loader.exec_module(r)
 class ImportQualityTests(unittest.TestCase):
+    def test_raw_register_csv_excludes_preview(self):
+        html = """<a href='https://assets.publishing.service.gov.uk/media/x/sponsors.csv'>CSV</a>
+        <a href='https://assets.publishing.service.gov.uk/media/x/sponsors.csv/preview'>View online</a>"""
+        self.assertEqual(r.register_csv_urls(html), ['https://assets.publishing.service.gov.uk/media/x/sponsors.csv'])
+
+    def test_raw_register_csv_excludes_other_hosts(self):
+        html = "<a href='https://malicious.example/evil.csv'>CSV</a>"
+        self.assertEqual(r.register_csv_urls(html), [])
+
     def test_sponsor_match_does_not_verify_a_brand(self):
         reg={'example': [{'name':'Example','town':'London','route':'Skilled Worker','rating':'Worker (A rating)'}]}
         d=r.sponsor_match([{'company':'Example','legal_name':''}],reg,'https://gov.uk/test.csv')
