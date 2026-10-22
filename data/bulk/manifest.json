@@ -1,0 +1,10 @@
+{
+  "provider": "Headcount Labs",
+  "terms": "https://headcountlabs.com/terms/",
+  "attribution": "Job data supplied by Headcount Labs (https://headcountlabs.com). Original adverts belong to employers.",
+  "imported_on": "2026-10-22",
+  "fetched_records": 100000,
+  "valid_uk_jobs": 94655,
+  "chunks": 19,
+  "source": "https://headcountlabs.com/"
+}
