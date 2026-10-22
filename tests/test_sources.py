@@ -36,6 +36,19 @@ class ImportQualityTests(unittest.TestCase):
         reg={'example ltd':[{'name':'Example LTD','town':'London','route':'Skilled Worker','rating':'Worker (A rating)'}, {'name':'Example LTD','town':'Leeds','route':'Skilled Worker','rating':'Worker (A rating)'}]}
         d=r.sponsor_match([{'company':'Example','legal_name':'Example LTD'}],reg,'https://gov.uk/test.csv')
         self.assertNotIn('Example LTD',d)
+    def test_curated_company_identity_matches_register(self):
+        reg={'ankar.ai':[{'name':'Ankar.ai','town':'London','route':'Skilled Worker','rating':'Worker (A rating)'}]}
+        src={'company':'Ankar','legal_name':'ANKAR.AI LTD','register_name':'Ankar.ai','register_town':'London','company_number':'15213676','entity_match_url':'https://find-and-update.company-information.service.gov.uk/company/15213676'}
+        d=r.sponsor_match([src],reg,'https://www.gov.uk/sponsor.csv')
+        self.assertEqual(d['Ankar']['status'],'verified')
+        self.assertEqual(d['ANKAR.AI LTD']['route'],'Skilled Worker')
+
+    def test_unlinked_brand_cannot_claim_licence(self):
+        reg={'somebrand':[{'name':'SomeBrand','town':'London','route':'Skilled Worker','rating':'Worker (A rating)'}]}
+        src={'company':'SomeBrand','legal_name':'UNRELATED LTD','register_name':'SomeBrand','register_town':'London'}
+        d=r.sponsor_match([src],reg,'https://www.gov.uk/sponsor.csv')
+        self.assertEqual(d['SomeBrand']['status'],'name_only')
+
     def test_apply_link_host_is_allowed(self):
         job={'title':'Business Development Manager','location':'London', 'jobUrl':'https://evil.example/123', 'descriptionPlain':'Visa sponsorship: Yes'}
         self.assertIsNone(r.listing({'company':'Example','board':'example'},job))
