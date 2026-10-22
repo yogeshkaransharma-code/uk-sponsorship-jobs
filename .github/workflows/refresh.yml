@@ -37,7 +37,21 @@ jobs:
           git add data/jobs.json data/sponsors.json
           if ! git diff --cached --quiet; then
             git commit -m 'data: refresh source-backed vacancy and sponsor evidence'
-            git push
+            # Another commit may land while the importer is running.
+            # Update to the latest main and retry safely without force-pushing.
+            for attempt in 1 2 3 4; do
+              git fetch origin main
+              git rebase origin/main
+              if git push origin HEAD:main; then
+                echo "Source-backed data pushed successfully"
+                break
+              fi
+              if [ "$attempt" = 4 ]; then
+                echo "::error::Could not push updated source records after 4 attempts"
+                exit 1
+              fi
+              sleep 2
+            done
           else
             echo 'No data changes.'
           fi
