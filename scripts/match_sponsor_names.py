@@ -43,7 +43,11 @@ def get_candidates(names,registered):
         root=stem(name)
         matches=exact.get(norm,set())
         match_type="Exact register-name match"
-        if not matches and len(root)>=7:
+        if not matches and len(root)>=7 and root not in {
+            "services","solutions","consulting","trading","holdings","group",
+            "partners","technology","technologies","healthcare","management",
+            "recruitment","energy","digital","international","education",
+        }:
             matches=roots.get(root,set())
             match_type="Similar register name (corporate suffix ignored)"
         # Avoid silently assigning one employer's identity where many exist.
