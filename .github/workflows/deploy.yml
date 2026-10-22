@@ -7,7 +7,7 @@ on:
   # Updates committed by GITHUB_TOKEN do not fire normal push workflows.
   # A completed refresh does fire this event; deploy the current main branch.
   workflow_run:
-    workflows: ["Refresh sponsor evidence and job feeds", "Import free public UK vacancies"]
+    workflows: ["Refresh sponsor evidence and job feeds", "Import free public UK vacancies", "Import UK job-data snapshot (manual, free allowance only)"]
     types: [completed]
 
 concurrency:
