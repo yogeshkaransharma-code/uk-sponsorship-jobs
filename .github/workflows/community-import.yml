@@ -1,0 +1,60 @@
+name: Import free public UK vacancies
+
+on:
+  push:
+    paths:
+      - scripts/import_community.py
+      - .github/workflows/community-import.yml
+      - tests/test_community_import.py
+  schedule:
+    - cron: '41 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sponsorhq-community-import
+  cancel-in-progress: false
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Test filters, importer and existing job rules
+        run: python -m unittest discover -s tests -v
+      - name: Import UK listings from an openly licensed public GitHub job index
+        run: python -u scripts/import_community.py
+      - name: Validate SponsorHQ public site
+        run: python scripts/build_site.py
+      - name: Commit public metadata (retain changes from concurrent refreshes)
+        run: |
+          set -e
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          cp data/bulk/community.json /tmp/sponsorhq-community.json
+          for attempt in 1 2 3; do
+            git fetch origin main
+            git reset --hard origin/main
+            mkdir -p data/bulk
+            cp /tmp/sponsorhq-community.json data/bulk/community.json
+            git add data/bulk/community.json
+            if git diff --cached --quiet; then
+              echo 'No changes to dataset.'
+              exit 0
+            fi
+            git commit -m 'data: refresh UK jobs from openly licensed public feed'
+            if git push origin HEAD:main; then
+              echo 'Imported UK job records committed.'
+              exit 0
+            fi
+            sleep 2
+          done
+          exit 1
