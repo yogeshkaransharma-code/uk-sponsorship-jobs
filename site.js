@@ -6,7 +6,7 @@ const safeUrl=s=>{try{const url=new URL(s);return url.protocol==="https:"?url.hr
 const prettyDate=s=>{if(!s)return "Not yet checked";const d=new Date(String(s).slice(0,10)+"T12:00:00");return Number.isNaN(d.getTime())?"Not yet checked":d.toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"})};
 function companyData(j){return sponsors[j.legal_name||j.company]||sponsors[j.company]||{}}
 
-let locationFilter="",salaryFilter="all",postedFilter="all",workFilter="all";
+let locationFilter="",salaryFilter="all",postedFilter="all",workFilter="all",descriptionOnly=false;
 const licenseInfo=j=>companyData(j).status==="verified";
 
 /** Field or sector inferred from an unambiguous role title; not a claim about
@@ -69,6 +69,7 @@ function postedWithin(j,days){
 }
 function matchesJob(j){
   if(j.active===false||j.sponsorship==="unavailable")return false;
+  if(descriptionOnly&&!j.description_excerpt)return false;
   if(filter==="stated"&&j.sponsorship!=="stated")return false;
   if(filter==="conditional"&&j.sponsorship!=="conditional")return false;
   if(filter==="verified"&&!licenseInfo(j))return false;
@@ -203,13 +204,18 @@ function wireFilters(){
   setter("salary-filter",v=>salaryFilter=v);
   setter("posted-filter",v=>postedFilter=v);
   setter("work-filter",v=>workFilter=v);
+  document.getElementById("descriptions-only")?.addEventListener("change",e=>{
+    descriptionOnly=e.target.checked;page=1;render();
+  });
   setter("sponsorship-filter",v=>filter=v);
   document.getElementById("reset-filters")?.addEventListener("click",()=>{
     for(const id of ["search","location-filter"])document.getElementById(id).value="";
     for(const id of ["industry-filter","function-filter","level-filter","salary-filter","posted-filter","sponsorship-filter","work-filter"])
       document.getElementById(id).value="all";
     query="";locationFilter="";industryFilter="all";functionFilter="all";levelFilter="all";
-    salaryFilter="all";postedFilter="all";workFilter="all";filter="all";page=1;render();
+    salaryFilter="all";postedFilter="all";workFilter="all";filter="all";descriptionOnly=false;
+    document.getElementById("descriptions-only").checked=false;
+    page=1;render();
   });
   document.getElementById("jobs").addEventListener("click",async e=>{
     if(e.target.id==="load-more"){page++;render();return;}
@@ -249,4 +255,4 @@ if(Array.isArray(a.chunks)&&a.chunks.length){
   }));
   for(const pageJobs of pages)jobs.push(...pageJobs);
 }
-sponsors=b.companies||{};const credit=document.getElementById("headcount-credit");if(credit&&jobs.some(j=>j.source_attribution==="Headcount Labs"))credit.hidden=false;const communityCredit=document.getElementById("community-credit");if(communityCredit&&jobs.some(j=>String(j.source_attribution||"").includes("ConorsCode")))communityCredit.hidden=false;prepareFilters();wireFilters();document.getElementById("last-reviewed").textContent=(a.mode==="automated"?"Job feeds checked ":"Editorial examples reviewed ")+prettyDate(a.updated_at)+(b.updated_at?" · register checked "+prettyDate(b.updated_at):" · register sync pending")+(a.mode==="automated"?" · feed checks may be delayed":" · live availability not yet checked");render()}catch(err){document.getElementById("jobs").innerHTML='<div class="notice">The listings could not be loaded. For local development, start a web server rather than opening this directory using file://.</div>';document.getElementById("last-reviewed").textContent="Data connection unavailable"}}init();
+sponsors=b.companies||{};const credit=document.getElementById("headcount-credit");if(credit&&jobs.some(j=>j.source_attribution==="Headcount Labs"))credit.hidden=false;const communityCredit=document.getElementById("community-credit");if(communityCredit&&jobs.some(j=>String(j.source_attribution||"").includes("ConorsCode")))communityCredit.hidden=false;prepareFilters();wireFilters();document.getElementById("description-coverage").textContent=jobs.filter(j=>j.sponsorship!=="unavailable"&&j.description_excerpt).length.toLocaleString("en-GB")+" readable adverts available";document.getElementById("last-reviewed").textContent=(a.mode==="automated"?"Job feeds checked ":"Editorial examples reviewed ")+prettyDate(a.updated_at)+(b.updated_at?" · register checked "+prettyDate(b.updated_at):" · register sync pending")+(a.mode==="automated"?" · feed checks may be delayed":" · live availability not yet checked");render()}catch(err){document.getElementById("jobs").innerHTML='<div class="notice">The listings could not be loaded. For local development, start a web server rather than opening this directory using file://.</div>';document.getElementById("last-reviewed").textContent="Data connection unavailable"}}init();
