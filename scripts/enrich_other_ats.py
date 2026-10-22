@@ -127,7 +127,10 @@ def targets():
 def main():
     catalog=targets()
     longest=max((len(v)+PER_VENDOR-1)//PER_VENDOR for v in catalog.values())
-    index=0 if "--first" in sys.argv else datetime.now(timezone.utc).date().toordinal()%longest
+    now=datetime.now(timezone.utc)
+    # Scheduled slots rotate through distinct batches across the day.
+    # Three limited runs per day cover more sources without hammering a site.
+    index=0 if "--first" in sys.argv else (now.date().toordinal()*3+now.hour//8)%longest
     if "--batch" in sys.argv:
         index=int(sys.argv[sys.argv.index("--batch")+1])%longest
     requested=[]
