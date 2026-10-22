@@ -82,7 +82,7 @@ def build() -> dict:
         k: v for k, v in job.items()
         if k in (
             "id", "company", "legal_name", "title", "location", "category",
-            "industry", "job_function", "experience_level", "salary",
+            "industry", "job_function", "experience_level", "salary", "work_arrangement",
             "sponsorship", "evidence", "evidence_source", "evidence_url",
             "apply_url", "verified_on", "posted_at", "last_seen", "active",
             "review", "summary", "source_attribution", "posting_attribution",
