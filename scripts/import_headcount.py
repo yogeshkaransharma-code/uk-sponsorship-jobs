@@ -123,7 +123,7 @@ def record(row):
         "last_seen": time.strftime("%Y-%m-%d", time.gmtime()),
         "active": True, "review": "auto",
         "summary": "UK vacancy listed on the employer's recruitment system. Visa policy not confirmed.",
-        "source_attribution": "Headcount Labs (CC BY 4.0)",
+        "source_attribution": "Headcount Labs",
     }
 
 
