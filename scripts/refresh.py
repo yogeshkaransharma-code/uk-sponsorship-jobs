@@ -237,6 +237,10 @@ def listing(source,item):
     country = postal.get('addressCountry', '')
     if not uk_location(loc,country): return None
     if len(text)>110000: text=text[:110000]
+    # A short verbatim excerpt gives applicants context without copying whole ads.
+    excerpt=text[:900].rstrip()
+    if len(text)>900 and ' ' in excerpt:
+        excerpt=excerpt.rsplit(' ',1)[0]+'…'
     status,evidence=classify(text)
     url=item.get('jobUrl') or item.get('absolute_url') or ''
     apply_url=item.get('applyUrl') or url
@@ -256,7 +260,7 @@ def listing(source,item):
         'title':title,'location':loc or 'UK (see advert)','category':sector,
         'industry':source.get('industry',sector.split(' / ')[0].strip()),
         'job_function':job_function(title),'experience_level':experience_level(title),
-        'salary':salary,'sponsorship':status,'evidence':evidence,'evidence_source':'Automated text extraction from employer feed',
+        'salary':salary,'sponsorship':status,'description_excerpt':excerpt,'evidence':evidence,'evidence_source':'Automated text extraction from employer feed',
         'evidence_url':url,'apply_url':apply_url,'verified_on':FRESH,'posted_at':(item.get('publishedAt') or '')[:10],
         'last_seen':FRESH,'active':True,'review':'auto','summary':source.get('sector','Commercial')+' — check employer advert for role-specific sponsorship and eligibility.'}
 
