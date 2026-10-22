@@ -1,8 +1,8 @@
-# UK Sponsorship Jobs — connected beta (private)
+# UK Sponsorship Jobs — public beta
 
 Lightweight UK vacancies directory designed around **three separate evidence types**: a job advert's sponsorship statement, a precise current Skilled Worker register match, and previous sponsorship records where independently sourced.
 
-**Status (22 October 2026):** GitHub data refresh has collected employer-feed jobs and matched current Skilled Worker sponsor-register entries for Ankar, Neudata and Mistral AI. This is a private repository, not a public deployment. Sponsorship history counts remain unpopulated until separately sourced.
+**Status (22 October 2026):** GitHub data refresh has collected employer-feed jobs and matched current Skilled Worker sponsor-register entries for Ankar, Neudata and Mistral AI. The repository has been made public for a free GitHub Pages beta. The Pages deployment must still complete successfully before the live website is available. Sponsorship history counts remain unpopulated until separately sourced.
 
 ## Data and costs
 
@@ -46,7 +46,7 @@ The initial job importer and sponsor-register matcher have written records to `d
 
 ## Free launch checklist (GitHub Pages)
 
-The current account repository is private. On GitHub Free, the owner must change it to **Public** under **Settings → General → Danger Zone → Change repository visibility**. Review repository content before doing that; everything committed becomes public. The connected GitHub tool cannot make this account-level change.
+The repository is now **public**, meeting the visibility requirement for GitHub Free Pages. Review the source repository before sharing the website broadly.
 
 Next select **Settings → Pages → Build and deployment → Source: GitHub Actions**. Do **not** choose Deploy from a branch. In **Actions**, manually run **Deploy public job board** once if it does not start automatically. The expected Pages URL is:
 
