@@ -86,6 +86,7 @@ def build() -> dict:
             "sponsorship", "evidence", "evidence_source", "evidence_url",
             "apply_url", "verified_on", "posted_at", "last_seen", "active",
             "review", "summary", "source_attribution", "posting_attribution",
+            "description_excerpt",
         )
     } for job in selected]
     # Static Pages cannot query a server-side database. Split large indexes
