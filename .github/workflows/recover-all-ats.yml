@@ -1,0 +1,59 @@
+name: Recover first 13k ATS descriptions
+
+on:
+  push:
+    paths:
+      - .github/workflows/recover-all-ats.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify importer and sponsorship classification
+        run: python -m unittest discover -s tests -v
+      - name: Recover all five groups of directly accessible public ATS vacancies
+        run: |
+          set -e
+          for n in 0 1 2 3 4; do
+            python -u scripts/enrich_descriptions.py --batch "$n"
+          done
+      - name: Validate full descriptions with sharded static site
+        run: |
+          python scripts/build_site.py
+          node tests/site_smoke.cjs
+      - name: Commit newly recovered employer job descriptions
+        run: |
+          set -e
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          mkdir -p /tmp/sponsorhq-ats
+          cp data/enriched/ats-*.json /tmp/sponsorhq-ats/
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main
+            git reset --hard origin/main
+            mkdir -p data/enriched
+            cp /tmp/sponsorhq-ats/ats-*.json data/enriched/
+            git add data/enriched/ats-*.json
+            if git diff --cached --quiet; then
+              echo 'All description overlays already updated.'
+              exit 0
+            fi
+            git commit -m 'data: recover missing UK job descriptions from public employer ATS'
+            if git push origin HEAD:main; then
+              echo 'Recovered descriptions committed.'
+              exit 0
+            fi
+            sleep 3
+          done
+          exit 1
