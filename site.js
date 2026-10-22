@@ -25,4 +25,17 @@ for(const [id,fn] of [["industry-filter",v=>industryFilter=v],["function-filter"
 }
 document.getElementById("jobs").addEventListener("click",e=>{if(e.target.id==="load-more"){page++;render();}});
 
-async function init(){try{let a,b;if(window.__PREVIEW_DATA__){a=window.__PREVIEW_DATA__.jobs;b=window.__PREVIEW_DATA__.sponsors}else{const [r1,r2]=await Promise.all([fetch("./data/jobs.json",{cache:"no-store"}),fetch("./data/sponsors.json",{cache:"no-store"})]);if(!r1.ok)throw new Error("Jobs not available");a=await r1.json();b=r2.ok?await r2.json():{companies:{}}}jobs=Array.isArray(a.jobs)?a.jobs:[];sponsors=b.companies||{};const credit=document.getElementById("headcount-credit");if(credit&&jobs.some(j=>j.source_attribution==="Headcount Labs"))credit.hidden=false;const communityCredit=document.getElementById("community-credit");if(communityCredit&&jobs.some(j=>String(j.source_attribution||"").includes("ConorsCode")))communityCredit.hidden=false;prepareFilters();document.getElementById("last-reviewed").textContent=(a.mode==="automated"?"Job feeds checked ":"Editorial examples reviewed ")+prettyDate(a.updated_at)+(b.updated_at?" · register checked "+prettyDate(b.updated_at):" · register sync pending")+(a.mode==="automated"?" · feed checks may be delayed":" · live availability not yet checked");render()}catch(err){document.getElementById("jobs").innerHTML='<div class="notice">The listings could not be loaded. For local development, start a web server rather than opening this directory using file://.</div>';document.getElementById("last-reviewed").textContent="Data connection unavailable"}}init();
+async function init(){try{let a,b;if(window.__PREVIEW_DATA__){a=window.__PREVIEW_DATA__.jobs;b=window.__PREVIEW_DATA__.sponsors}else{const [r1,r2]=await Promise.all([fetch("./data/jobs.json",{cache:"no-store"}),fetch("./data/sponsors.json",{cache:"no-store"})]);if(!r1.ok)throw new Error("Jobs not available");a=await r1.json();b=r2.ok?await r2.json():{companies:{}}}jobs=Array.isArray(a.jobs)?a.jobs:[];
+if(Array.isArray(a.chunks)&&a.chunks.length){
+  document.getElementById("last-reviewed").textContent="Loading the UK jobs catalogue…";
+  const pages=await Promise.all(a.chunks.map(async name=>{
+    if(typeof name!=="string"||!/^\.\/data\/jobs\/chunk-\d{3}\.json$/.test(name))throw new Error("Invalid job chunk reference");
+    const response=await fetch(name,{cache:"no-store"});
+    if(!response.ok)throw new Error("One job-data chunk is unavailable");
+    const payload=await response.json();
+    if(!Array.isArray(payload.jobs))throw new Error("Incorrect job-data format");
+    return payload.jobs;
+  }));
+  for(const pageJobs of pages)jobs.push(...pageJobs);
+}
+sponsors=b.companies||{};const credit=document.getElementById("headcount-credit");if(credit&&jobs.some(j=>j.source_attribution==="Headcount Labs"))credit.hidden=false;const communityCredit=document.getElementById("community-credit");if(communityCredit&&jobs.some(j=>String(j.source_attribution||"").includes("ConorsCode")))communityCredit.hidden=false;prepareFilters();document.getElementById("last-reviewed").textContent=(a.mode==="automated"?"Job feeds checked ":"Editorial examples reviewed ")+prettyDate(a.updated_at)+(b.updated_at?" · register checked "+prettyDate(b.updated_at):" · register sync pending")+(a.mode==="automated"?" · feed checks may be delayed":" · live availability not yet checked");render()}catch(err){document.getElementById("jobs").innerHTML='<div class="notice">The listings could not be loaded. For local development, start a web server rather than opening this directory using file://.</div>';document.getElementById("last-reviewed").textContent="Data connection unavailable"}}init();
