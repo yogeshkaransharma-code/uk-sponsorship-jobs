@@ -1,0 +1,191 @@
+#!/usr/bin/env python3
+"""One-time, opt-in UK job import using the Headcount Labs free API allowance.
+
+Run only when explicitly dispatched. Requires HEADCOUNTLABS_API_KEY set as
+a GitHub Actions secret. We never enable paid usage. The vendor enforces a
+$0 paid-usage cap by default; verify it in the provider account too.
+
+Only a small metadata index with links to employer postings is published.
+Do not imply a vacancy offers visa sponsorship when that is not stated.
+"""
+from __future__ import annotations
+
+import gzip
+import json
+import os
+import re
+import sys
+import time
+from pathlib import Path
+from urllib.error import HTTPError, URLError
+from urllib.parse import urljoin, urlparse
+from urllib.request import Request, urlopen
+
+ROOT = Path(__file__).resolve().parents[1]
+DATA = ROOT / "data"
+ENDPOINT = "https://api.headcountlabs.com"
+LIMIT = 100_000
+FIELDS = [
+    "job_id", "currentness", "employer_name", "title",
+    "work_arrangement", "locations", "job_first_seen_at", "postings",
+]
+
+
+def unwrap(value):
+    if isinstance(value, dict):
+        return value.get("value") if value.get("state") in ("known", "derived") else None
+    return value
+
+
+def api(path, *, key, method="GET", payload=None):
+    if not path.startswith("/v1/jobs/"):
+        raise ValueError("Unexpected API path")
+    u = urlparse(urljoin(ENDPOINT, path))
+    if u.scheme != "https" or u.hostname != "api.headcountlabs.com":
+        raise ValueError("Unexpected API host")
+    data = json.dumps(payload).encode("utf-8") if payload is not None else None
+    req = Request(u.geturl(), data=data, method=method,
+                  headers={"Authorization": "Bearer " + key,
+                           "Accept": "application/json",
+                           "Content-Type": "application/json",
+                           "User-Agent": "SponsorHQ-public-jobs/0.1"})
+    with urlopen(req, timeout=60) as response:
+        return json.loads(response.read(5_000_000))
+
+
+def download(path, *, key):
+    u = urlparse(urljoin(ENDPOINT, path))
+    if u.scheme != "https" or u.hostname != "api.headcountlabs.com" or not u.path.startswith("/v1/jobs/exports/"):
+        raise ValueError("Unexpected export URL")
+    req = Request(u.geturl(), headers={"Authorization": "Bearer " + key,
+                                       "User-Agent": "SponsorHQ-public-jobs/0.1"})
+    with urlopen(req, timeout=120) as response:
+        return response.read(100_000_000)
+
+
+def good_url(url):
+    return isinstance(url, str) and url.startswith("https://") and bool(urlparse(url).hostname)
+
+
+def record(row):
+    if not isinstance(row, dict) or row.get("currentness") != "current":
+        return None
+    company = unwrap(row.get("employer_name"))
+    title = unwrap(row.get("title"))
+    if not isinstance(company, str) or not company.strip() or not isinstance(title, str) or not title.strip():
+        return None
+    places = []
+    for entry in row.get("locations") or []:
+        loc = unwrap(entry)
+        if isinstance(loc, dict) and loc.get("country") == "GB":
+            places.append(loc)
+    if not places:
+        return None
+    postings = row.get("postings") or []
+    selected = None
+    for p in postings:
+        if not isinstance(p, dict) or p.get("posting_status") != "listed":
+            continue
+        url = unwrap(p.get("application_url")) or unwrap(p.get("posting_url"))
+        if good_url(url):
+            selected = (p, url)
+            break
+    if not selected:
+        return None
+    p, url = selected
+    city = next((x.get("city") for x in places if x.get("city")), None)
+    region = next((x.get("region") for x in places if x.get("region")), None)
+    location = (city or region or "United Kingdom") + ", UK" if city or region else "United Kingdom"
+    pay = unwrap(p.get("pay"))
+    salary = "Not disclosed"
+    if isinstance(pay, dict) and pay.get("currency") == "GBP" and pay.get("interval") == "year":
+        mn, mx = pay.get("min"), pay.get("max")
+        if isinstance(mn, (float, int)) and isinstance(mx, (float, int)):
+            salary = "£{:,.0f}–£{:,.0f} per year".format(mn, mx)
+    ident = row.get("job_id")
+    if not isinstance(ident, str) or not re.fullmatch(r"[a-zA-Z0-9-]{10,60}", ident):
+        return None
+    # Never classify evidence from the absence of description data.
+    return {
+        "id": "headcount-" + ident, "company": company.strip(),
+        "legal_name": "", "title": title.strip(),
+        "location": location, "country": "GB",
+        "category": "Industry not verified",
+        "industry": "Other / unclassified",
+        "job_function": "Not classified",
+        "experience_level": "Not specified",
+        "salary": salary, "sponsorship": "unknown",
+        "evidence": "The source metadata does not confirm sponsorship for this vacancy.",
+        "evidence_source": "Headcount Labs job-data index",
+        "evidence_url": url, "apply_url": url,
+        "verified_on": row.get("job_updated_at", "")[:10] or row.get("job_first_seen_at", "")[:10],
+        "posted_at": (p.get("source_posted_at") or "")[:10],
+        "last_seen": time.strftime("%Y-%m-%d", time.gmtime()),
+        "active": True, "review": "auto",
+        "summary": "UK vacancy listed on the employer's recruitment system. Visa policy not confirmed.",
+        "source_attribution": "Headcount Labs (CC BY 4.0)",
+    }
+
+
+def normalize_export(rows):
+    out = {}
+    for row in rows:
+        value = record(row)
+        if value:
+            out[value["id"]] = value
+    return sorted(out.values(), key=lambda x: (x["company"].casefold(), x["title"].casefold()))
+
+
+def main():
+    key = os.environ.get("HEADCOUNTLABS_API_KEY", "").strip()
+    if not key:
+        raise SystemExit("Missing HEADCOUNTLABS_API_KEY GitHub Actions secret. Nothing was downloaded.")
+    maximum = min(LIMIT, int(os.environ.get("HEADCOUNT_MAX_JOBS", LIMIT)))
+    if maximum < 1:
+        raise SystemExit("A positive maximum is required")
+    print("Requesting GB-only current jobs, maximum {} (manual import, not recurring)".format(maximum), flush=True)
+    response = api("/v1/jobs/exports", key=key, method="POST", payload={
+        "country": "GB", "currentness": "current", "max_records": maximum,
+        "fields": FIELDS,
+    })
+    export_id = response.get("export_id")
+    if not isinstance(export_id, str) or not re.fullmatch(r"[a-zA-Z0-9-]{8,100}", export_id):
+        raise ValueError("API did not return a safe export ID")
+    status = None
+    for attempt in range(150):
+        status = api("/v1/jobs/exports/" + export_id, key=key)
+        if status.get("status") in ("completed", "failed", "expired"):
+            break
+        time.sleep(10)
+    if not status or status.get("status") != "completed":
+        raise RuntimeError("Import did not complete: " + str((status or {}).get("status")))
+    rows = []
+    files = status.get("files", [])
+    if len(files) > 20:
+        raise ValueError("Unexpected number of export chunks")
+    for chunk in files:
+        blob = download(chunk["url"], key=key)
+        for line in gzip.decompress(blob).splitlines():
+            if line:
+                rows.append(json.loads(line))
+        print("Downloaded {} of {} chunks, {} rows".format(files.index(chunk)+1, len(files), len(rows)), flush=True)
+    items = normalize_export(rows)
+    if not items:
+        raise RuntimeError("Import returned no valid UK vacancies; existing records untouched")
+    out = DATA / "bulk"
+    out.mkdir(exist_ok=True, parents=True)
+    (out / "jobs.json").write_text(json.dumps({"jobs": items}, ensure_ascii=False, separators=(",", ":")) + "\n", encoding="utf-8")
+    (out / "manifest.json").write_text(json.dumps({
+        "provider": "Headcount Labs", "licence": "CC BY 4.0 for provider contributions",
+        "attribution": "Job data: Headcount Labs (https://headcountlabs.com), CC BY 4.0. Job postings belong to their publishers.",
+        "imported_on": time.strftime("%Y-%m-%d", time.gmtime()),
+        "fetched_records": len(rows), "valid_uk_jobs": len(items),
+        "source": "https://headcountlabs.com/license/",
+    }, indent=2) + "\n", encoding="utf-8")
+    print("Prepared {} UK jobs for SponsorHQ's next deployment".format(len(items)))
+    return 0
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
