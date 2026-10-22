@@ -26,7 +26,7 @@ DATA = ROOT / "data"
 ENDPOINT = "https://api.headcountlabs.com"
 LIMIT = 100_000
 FIELDS = [
-    "job_id", "currentness", "employer_name", "title",
+    "job_id", "currentness", "employer_name", "title", "description",
     "work_arrangement", "locations", "job_first_seen_at", "postings",
 ]
 
@@ -148,7 +148,17 @@ def record(row):
     ident = row.get("job_id")
     if not isinstance(ident, str) or not re.fullmatch(r"[a-zA-Z0-9-]{10,60}", ident):
         return None
-    # Never classify evidence from the absence of description data.
+    # Future free monthly snapshots also include short advert excerpts.
+    # Keep copies small; original advert has the full, authoritative text.
+    import html
+    original=unwrap(row.get("description"))
+    if not isinstance(original,str):original=""
+    plain=html.unescape(re.sub(r"<[^>]+>", " ", original))
+    plain=re.sub(r"\\s+", " ", plain).strip()
+    excerpt=plain[:750].rstrip()
+    if len(plain)>750 and " " in excerpt:
+        excerpt=excerpt.rsplit(" ",1)[0]+"…"
+    # Never classify sponsorship as offered based on absence of a statement.
     return {
         "id": "headcount-" + ident, "company": company.strip(),
         "legal_name": "", "title": title.strip(),
@@ -158,6 +168,7 @@ def record(row):
         "job_function": infer_function(title),
         "experience_level": infer_seniority(title),
         "salary": salary, "sponsorship": "unknown",
+        "description_excerpt": excerpt,
         "evidence": "The source metadata does not confirm sponsorship for this vacancy.",
         "evidence_source": "Headcount Labs job-data index",
         "evidence_url": url, "apply_url": url,
