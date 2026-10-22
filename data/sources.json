@@ -8,7 +8,8 @@
     "register_name": "Ankar.ai",
     "register_town": "London",
     "company_number": "15213676",
-    "entity_match_url": "https://sponsorsearch.co.uk/company/ankar-ai"
+    "entity_match_url": "https://sponsorsearch.co.uk/company/ankar-ai",
+    "sector": "Technology / B2B sales"
   },
   {
     "company": "Neudata",
@@ -19,7 +20,8 @@
     "register_name": "Neudata Limited",
     "register_town": "London",
     "company_number": "09942593",
-    "entity_match_url": "https://find-and-update.company-information.service.gov.uk/company/09942593"
+    "entity_match_url": "https://find-and-update.company-information.service.gov.uk/company/09942593",
+    "sector": "Financial services / B2B sales"
   },
   {
     "company": "Mistral AI",
@@ -30,13 +32,103 @@
     "register_name": "Mistral AI UK Limited",
     "register_town": "London",
     "company_number": "14894136",
-    "entity_match_url": "https://sponsorarchive.com/sponsor/mistral-ai-uk-limited"
+    "entity_match_url": "https://sponsorarchive.com/sponsor/mistral-ai-uk-limited",
+    "sector": "Technology / B2B sales"
   },
   {
     "company": "Sequence",
     "provider": "ashby",
     "board": "sequence",
     "legal_name": "",
+    "enabled": true,
+    "sector": "Financial technology"
+  },
+  {
+    "company": "Marshmallow",
+    "provider": "ashby",
+    "board": "marshmallow",
+    "legal_name": "",
+    "sector": "Insurance / financial services",
+    "enabled": true
+  },
+  {
+    "company": "Flock",
+    "provider": "ashby",
+    "board": "flock",
+    "legal_name": "",
+    "sector": "Insurance / insurtech",
+    "enabled": true
+  },
+  {
+    "company": "iwoca",
+    "provider": "ashby",
+    "board": "iwoca.co.uk",
+    "legal_name": "",
+    "sector": "Insurance / SME finance",
+    "enabled": true
+  },
+  {
+    "company": "Insurtech Insights",
+    "provider": "greenhouse",
+    "board": "insurtechinsights",
+    "legal_name": "",
+    "sector": "Insurance / B2B sales",
+    "enabled": true
+  },
+  {
+    "company": "Coalition UK",
+    "provider": "greenhouse",
+    "board": "uk-coalition",
+    "legal_name": "",
+    "sector": "Insurance / broker relationships",
+    "enabled": true
+  },
+  {
+    "company": "SiriusPoint",
+    "provider": "greenhouse",
+    "board": "siriuspoint",
+    "legal_name": "",
+    "sector": "Insurance / reinsurance",
+    "enabled": true
+  },
+  {
+    "company": "Apollo",
+    "provider": "greenhouse",
+    "board": "apollosyndicate1969",
+    "legal_name": "",
+    "sector": "Insurance / Lloyd's market",
+    "enabled": true
+  },
+  {
+    "company": "Adyen",
+    "provider": "greenhouse",
+    "board": "adyen",
+    "legal_name": "",
+    "sector": "Financial services / payments",
+    "enabled": true
+  },
+  {
+    "company": "Anthropic",
+    "provider": "greenhouse",
+    "board": "anthropic",
+    "legal_name": "",
+    "sector": "Technology / enterprise sales",
+    "enabled": true
+  },
+  {
+    "company": "Octus",
+    "provider": "greenhouse",
+    "board": "octus",
+    "legal_name": "",
+    "sector": "Financial services / relationship management",
+    "enabled": true
+  },
+  {
+    "company": "Alpha FMC",
+    "provider": "greenhouse",
+    "board": "alphafmcroles",
+    "legal_name": "",
+    "sector": "Financial services / client relationships",
     "enabled": true
   }
 ]
