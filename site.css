@@ -63,3 +63,20 @@
 .role-expand{margin-top:9px;border-top:1px solid #dde9df;padding-top:8px}
 .role-expand summary{font-size:12px;font-weight:700;color:var(--green);cursor:pointer}
 .role-expand p{font-size:13px;line-height:1.65;color:#4e5d52;margin:9px 0 0}
+
+
+/* SponsorHQ job-first v2: sponsorship is the primary, always-visible filter. */
+.filter-toolbar>.filter-field{flex:1 1 210px}
+.filter-toolbar>.primary-visa{flex:1.35 1 270px}
+.filter-toolbar .primary-visa select{border-color:#91b6a0;background:#f0f7f1;color:#174535;font-weight:650}
+.job .visa-line{display:flex;flex-direction:column;gap:4px;margin-top:16px;padding:11px 13px;border-radius:9px;border:1px solid #e1e8e2;background:#f7f9f8;font-size:12px;line-height:1.45}
+.job .visa-line strong{font-size:12px;font-weight:740}
+.job .visa-line span{color:#607167}
+.job .visa-stated{background:#ecf6ef;border-color:#c8e3d0;color:#236341}
+.job .visa-conditional{background:#fff8ed;border-color:#f0dcb5;color:#815d25}
+.job .visa-licenced{background:#edf5f1;border-color:#d2e8dc;color:#305f4e}
+.job .visa-unknown{color:#596962}
+.job .role-summary{margin-top:13px}
+.job-top{gap:9px}
+.job .job-bottom{justify-content:flex-end}
+@media(max-width:700px){.filter-toolbar>.primary-visa{flex-basis:100%}.filter-toolbar>.filter-field:not(.primary-visa){flex:1 1 calc(50% - 8px)}}
