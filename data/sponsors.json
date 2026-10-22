@@ -1,9 +1,9 @@
 {
-  "updated_at": "2026-10-22T19:21:24Z",
+  "updated_at": "2026-10-22T20:36:44Z",
   "official_register_url": "https://www.gov.uk/government/publications/register-of-licensed-sponsors-workers",
   "source_csv": "https://assets.publishing.service.gov.uk/media/6ad9bef8b62d80a107bc5b43/SP_-_Worker_and_Temporary_Worker_Web_Register_-_2026-10-22.csv",
   "rows_read": 143192,
-  "source_config_hash": "4e568c68d585faf19e5c8789e28f4cc4eb167a8ad298cc62b77878eef32a7881",
+  "source_config_hash": "a3d254d86c8d931fd9fcc01819b20438f47f4d9d6f313e7236b55b36f196edc2",
   "note": "Official register checked daily. Exact brand matches still need legal-entity verification. First observed here is not a licence start date. Missing CoS history is unknown, never zero.",
   "companies": {
     "ANKAR.AI LTD": {
