@@ -30,28 +30,29 @@ jobs:
         run: python scripts/refresh.py
       - name: Validate new data
         run: python -m unittest discover -s tests -v
-      - name: Commit changes to small public indexes
+      - name: Commit source-backed data without rewriting other changes
         run: |
+          set -e
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add data/jobs.json data/sponsors.json
-          if ! git diff --cached --quiet; then
+          mkdir -p /tmp/sponsor-index
+          cp data/jobs.json data/sponsors.json /tmp/sponsor-index/
+          for attempt in 1 2 3 4; do
+            git fetch origin main
+            git reset --hard origin/main
+            cp /tmp/sponsor-index/jobs.json /tmp/sponsor-index/sponsors.json data/
+            git add data/jobs.json data/sponsors.json
+            if git diff --cached --quiet; then
+              echo 'No fresh data changes to push.'
+              exit 0
+            fi
             git commit -m 'data: refresh source-backed vacancy and sponsor evidence'
-            # Another commit may land while the importer is running.
-            # Update to the latest main and retry safely without force-pushing.
-            for attempt in 1 2 3 4; do
-              git fetch origin main
-              git rebase origin/main
-              if git push origin HEAD:main; then
-                echo "Source-backed data pushed successfully"
-                break
-              fi
-              if [ "$attempt" = 4 ]; then
-                echo "::error::Could not push updated source records after 4 attempts"
-                exit 1
-              fi
-              sleep 2
-            done
-          else
-            echo 'No data changes.'
-          fi
+            if git push origin HEAD:main; then
+              echo 'Source-backed data pushed.'
+              exit 0
+            fi
+            echo "Concurrent update detected; fetching latest branch, retry $attempt"
+            sleep 2
+          done
+          echo "::error::Could not update indexes without a concurrent conflict"
+          exit 1
