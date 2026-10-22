@@ -15,7 +15,7 @@ from html import unescape
 from html.parser import HTMLParser
 from pathlib import Path
 from urllib.error import URLError, HTTPError
-from urllib.parse import urljoin, urlencode
+from urllib.parse import urljoin, urlencode, urlparse
 from urllib.request import Request, urlopen
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -57,27 +57,60 @@ class Links(HTMLParser):
             href=dict(attrs).get('href','')
             if href and ('.csv' in href.lower() or 'attachment' in href.lower()): self.links.append(href)
 
+def register_csv_urls(page_html):
+    """Accept the raw government attachment, never its HTML preview (.csv/preview)."""
+    p = Links()
+    p.feed(page_html)
+    urls = []
+    for href in p.links:
+        url = urljoin(GOV, unescape(href))
+        parsed = urlparse(url)
+        if parsed.scheme != 'https':
+            continue
+        if parsed.hostname not in ('assets.publishing.service.gov.uk', 'www.gov.uk', 'publishing.service.gov.uk'):
+            continue
+        if not parsed.path.lower().endswith('.csv'):
+            continue
+        if url not in urls:
+            urls.append(url)
+    return urls
+
+
 def official_register():
-    """Get current register, keeping only needed company-name matches in memory."""
-    html=get(GOV,2_000_000).decode('utf-8','replace')
-    p=Links();p.feed(html)
-    urls=[urljoin(GOV,unescape(x)) for x in p.links if '.csv' in x.lower()]
-    urls=[x for x in urls if x.startswith('https://') and ('publishing.service.gov.uk' in x or 'gov.uk' in x)]
-    if not urls: raise ValueError('Cannot identify government CSV link: check page structure')
-    preferred=[u for u in urls if 'worker' in u.lower()]
-    url=(preferred or urls)[-1]
-    rows=list(csv.DictReader(io.StringIO(get(url,25_000_000).decode('utf-8-sig','replace'))))
-    if not 20000 <= len(rows) <= 500000: raise ValueError('Register failed sanity check')
-    if not any('organisation' in k.lower() for k in rows[0]): raise ValueError('Unexpected CSV columns')
-    by_name={}
-    def getcol(r,part): return next((v for k,v in r.items() if part in k.lower()),'')
-    for r in rows:
-        name=getcol(r,'organisation').strip()
-        if not name: continue
-        by_name.setdefault(name.casefold(),[]).append({
-            'name':name,'town':getcol(r,'town').strip(),
-            'route':getcol(r,'route').strip(),'rating':(getcol(r,'type & rating') or getcol(r,'rating')).strip()})
-    return by_name,url,len(rows)
+    """Fetch and sanity-check the current raw Home Office CSV attachment."""
+    html = get(GOV, 2_000_000).decode('utf-8', 'replace')
+    urls = register_csv_urls(html)
+    if not urls:
+        raise ValueError('No raw government CSV attachment found')
+    failures = []
+    for url in reversed(urls):
+        try:
+            data = get(url, 25_000_000)
+            first = data[:1000].lower().lstrip()
+            if b'<html' in first or b'<!doctype' in first:
+                raise ValueError('Government attachment returned HTML, not CSV')
+            rows = list(csv.DictReader(io.StringIO(data.decode('utf-8-sig', 'replace'))))
+            if not 20000 <= len(rows) <= 500000:
+                raise ValueError('Register has unexpected row count: ' + str(len(rows)))
+            if not rows or not any('organisation' in (k or '').lower() for k in rows[0]):
+                raise ValueError('Unexpected government CSV headers')
+            by_name = {}
+            def getcol(row, part):
+                return next((v or '' for k, v in row.items() if k and part in k.lower()), '')
+            for row in rows:
+                name = getcol(row, 'organisation').strip()
+                if not name:
+                    continue
+                by_name.setdefault(name.casefold(), []).append({
+                    'name': name, 'town': getcol(row, 'town').strip(),
+                    'route': getcol(row, 'route').strip(),
+                    'rating': (getcol(row, 'type & rating') or getcol(row, 'rating')).strip()
+                })
+            return by_name, url, len(rows)
+        except (ValueError, HTTPError, URLError, TimeoutError) as exc:
+            failures.append(str(exc)[:160])
+    raise ValueError('None of the government CSV attachments passed validation: ' + '; '.join(failures))
+
 
 def history_for(name):
     """Read independently verified FOI figures, never compute a false zero."""
