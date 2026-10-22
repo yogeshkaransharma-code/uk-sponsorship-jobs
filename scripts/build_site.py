@@ -46,6 +46,28 @@ def build() -> dict:
             if not isinstance(bulk.get("jobs"), list):
                 raise ValueError("Bulk import must contain a jobs list")
             jobs = list(jobs) + bulk["jobs"]
+    # Join recovered descriptions against canonical job links. This avoids
+    # modifying 19 original 5k-record export files on each incremental refresh.
+    overlays = {}
+    for overlay_file in sorted((DATA / "enriched").glob("ats-*.json")):
+        overlay = json.loads(overlay_file.read_text(encoding="utf-8"))
+        records = overlay.get("records", {})
+        if not isinstance(records, dict):
+            raise ValueError("Unexpected employer-description overlay")
+        for canonical_key, details in records.items():
+            if isinstance(details, dict) and isinstance(details.get("description_excerpt"), str):
+                overlays[canonical_key] = details
+    if overlays:
+        from urllib.parse import urlsplit
+        for row in jobs:
+            url = row.get("apply_url") or ""
+            parts = urlsplit(url)
+            canonical_key = (parts.netloc.lower() + parts.path).rstrip("/").removesuffix("/application").lower()
+            details = overlays.get(canonical_key)
+            if details and (not row.get("description_excerpt") or
+                            len(details["description_excerpt"]) > len(row.get("description_excerpt") or "")):
+                row["description_excerpt"] = details["description_excerpt"]
+                row["description_source"] = details.get("description_source", "")
     companies = sponsor_source.get("companies", {})
     if not isinstance(jobs, list) or not isinstance(companies, dict):
         raise ValueError("Incorrect public data format")
@@ -86,7 +108,7 @@ def build() -> dict:
             "sponsorship", "evidence", "evidence_source", "evidence_url",
             "apply_url", "verified_on", "posted_at", "last_seen", "active",
             "review", "summary", "source_attribution", "posting_attribution",
-            "description_excerpt",
+            "description_excerpt", "description_source",
         )
     } for job in selected]
     # Static Pages cannot query a server-side database. Split large indexes
