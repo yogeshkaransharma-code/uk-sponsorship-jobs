@@ -158,7 +158,12 @@ def record(row):
     excerpt=plain[:750].rstrip()
     if len(plain)>750 and " " in excerpt:
         excerpt=excerpt.rsplit(" ",1)[0]+"…"
-    # Never classify sponsorship as offered based on absence of a statement.
+    # Identify wording in the actual advert conservatively. This remains
+    # automated evidence; users must check employer wording before applying.
+    from refresh import classify
+    status,evidence=classify(plain[:15000]) if plain else ("unknown","No description collected for visa analysis")
+    arrangement=unwrap(row.get("work_arrangement"))
+    arrangement=arrangement if arrangement in ("remote","hybrid","in_person") else ""
     return {
         "id": "headcount-" + ident, "company": company.strip(),
         "legal_name": "", "title": title.strip(),
@@ -167,10 +172,10 @@ def record(row):
         "industry": "Other / unclassified",
         "job_function": infer_function(title),
         "experience_level": infer_seniority(title),
-        "salary": salary, "sponsorship": "unknown",
+        "salary": salary, "sponsorship": status, "evidence": evidence,
+        "work_arrangement": arrangement,
         "description_excerpt": excerpt,
-        "evidence": "The source metadata does not confirm sponsorship for this vacancy.",
-        "evidence_source": "Headcount Labs job-data index",
+        "evidence_source": "Automatically detected advert wording, via Headcount Labs" if plain else "Headcount Labs metadata (description absent)",
         "evidence_url": url, "apply_url": url,
         "verified_on": (row.get("job_updated_at") or "")[:10] or (row.get("job_first_seen_at") or "")[:10],
         "posted_at": (p.get("source_posted_at") or "")[:10],
