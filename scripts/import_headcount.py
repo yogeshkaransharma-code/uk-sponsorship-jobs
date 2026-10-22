@@ -193,7 +193,7 @@ def main():
     print("Requesting GB-only current jobs, maximum {} (manual import, not recurring)".format(maximum), flush=True)
     try:
         response = api("/v1/jobs/exports", key=key, method="POST", payload={
-            "country": "GB", "currentness": "current", "max_records": maximum,
+            "country": "GB", "currentness": ["current"], "max_records": maximum,
             "fields": FIELDS,
         })
     except HTTPError as exc:
