@@ -1,6 +1,42 @@
 [
-  {"company":"Ankar","provider":"ashby","board":"ankar","legal_name":"","enabled":true},
-  {"company":"Neudata","provider":"ashby","board":"neudata","legal_name":"","enabled":true},
-  {"company":"Mistral AI","provider":"ashby","board":"mistral.ai","legal_name":"","enabled":true},
-  {"company":"Sequence","provider":"ashby","board":"sequence","legal_name":"","enabled":true}
+  {
+    "company": "Ankar",
+    "provider": "ashby",
+    "board": "ankar",
+    "legal_name": "ANKAR.AI LTD",
+    "enabled": true,
+    "register_name": "Ankar.ai",
+    "register_town": "London",
+    "company_number": "15213676",
+    "entity_match_url": "https://sponsorsearch.co.uk/company/ankar-ai"
+  },
+  {
+    "company": "Neudata",
+    "provider": "ashby",
+    "board": "neudata",
+    "legal_name": "NEUDATA LIMITED",
+    "enabled": true,
+    "register_name": "Neudata Limited",
+    "register_town": "London",
+    "company_number": "09942593",
+    "entity_match_url": "https://find-and-update.company-information.service.gov.uk/company/09942593"
+  },
+  {
+    "company": "Mistral AI",
+    "provider": "ashby",
+    "board": "mistral.ai",
+    "legal_name": "MISTRAL AI UK LTD",
+    "enabled": true,
+    "register_name": "Mistral AI UK Limited",
+    "register_town": "London",
+    "company_number": "14894136",
+    "entity_match_url": "https://sponsorarchive.com/sponsor/mistral-ai-uk-limited"
+  },
+  {
+    "company": "Sequence",
+    "provider": "ashby",
+    "board": "sequence",
+    "legal_name": "",
+    "enabled": true
+  }
 ]
