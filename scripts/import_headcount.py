@@ -191,10 +191,17 @@ def main():
     counts = api("/v1/jobs/count?country=GB&currentness=current", key=key)
     print("Provider UK available-count response: {}".format(str(counts)[:200]), flush=True)
     print("Requesting GB-only current jobs, maximum {} (manual import, not recurring)".format(maximum), flush=True)
-    response = api("/v1/jobs/exports", key=key, method="POST", payload={
-        "country": "GB", "currentness": "current", "max_records": maximum,
-        "fields": FIELDS,
-    })
+    try:
+        response = api("/v1/jobs/exports", key=key, method="POST", payload={
+            "country": "GB", "currentness": "current", "max_records": maximum,
+            "fields": FIELDS,
+        })
+    except HTTPError as exc:
+        # The API may return a machine-readable validation message. Never log
+        # the bearer key or the contents of the Authorization header.
+        detail = exc.read(3000).decode("utf-8", "replace").replace(key, "[REDACTED]")
+        print("Bulk export refused (HTTP {}): {}".format(exc.code, detail[:1800]), file=sys.stderr)
+        raise
     export_id = response.get("export_id")
     if not isinstance(export_id, str) or not re.fullmatch(r"[a-zA-Z0-9-]{8,100}", export_id):
         raise ValueError("API did not return a safe export ID")
