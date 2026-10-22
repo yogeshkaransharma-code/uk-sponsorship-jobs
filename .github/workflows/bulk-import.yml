@@ -5,7 +5,7 @@ on:
   # returned records per UTC calendar month, shared with this account.
   # Never turn on paid usage to make an import work.
   schedule:
-    - cron: '13 5 2 * *'
+    - cron: '13 5 1 * *'
   workflow_dispatch:
 
 permissions:
