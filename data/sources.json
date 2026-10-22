@@ -1,0 +1,6 @@
+[
+  {"company":"Ankar","provider":"ashby","board":"ankar","legal_name":"","enabled":true},
+  {"company":"Neudata","provider":"ashby","board":"neudata","legal_name":"","enabled":true},
+  {"company":"Mistral AI","provider":"ashby","board":"mistral.ai","legal_name":"","enabled":true},
+  {"company":"Sequence","provider":"ashby","board":"sequence","legal_name":"","enabled":true}
+]

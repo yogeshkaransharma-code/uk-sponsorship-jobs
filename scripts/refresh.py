@@ -1,0 +1,241 @@
+#!/usr/bin/env python3
+"""Small public-feed importer: no paid APIs, no user data, no fuzzy licence claims.
+Usage: python scripts/refresh.py [--offline]
+Runs from repository root. Writes only small JSON indexes, not Home Office's full CSV.
+"""
+from __future__ import annotations
+import csv
+import hashlib
+import io
+import json
+import re
+import sys
+from datetime import datetime, timezone, timedelta
+from html import unescape
+from html.parser import HTMLParser
+from pathlib import Path
+from urllib.error import URLError, HTTPError
+from urllib.parse import urljoin, urlencode
+from urllib.request import Request, urlopen
+
+ROOT = Path(__file__).resolve().parents[1]
+DATA = ROOT / 'data'
+GOV = 'https://www.gov.uk/government/publications/register-of-licensed-sponsors-workers'
+UA = 'UK-Sponsorship-Evidence/0.2 (non-commercial project; small public-source index)'
+TODAY = datetime.now(timezone.utc)
+STAMP = TODAY.strftime('%Y-%m-%dT%H:%M:%SZ')
+FRESH = TODAY.strftime('%Y-%m-%d')
+SCOPE = re.compile(r'\b(uk|united kingdom|london|manchester|birmingham|bristol|glasgow|edinburgh|leeds|cambridge|oxford|cardiff|liverpool|remote uk|england|scotland|wales)\b', re.I)
+KEYWORDS = re.compile(r'\b(account executive|sales|business development|relationship manager|account manager|client manager|broker|insurance|underwriter|consultant|commercial|partnership|financial|banking)\b', re.I)
+SPONSOR = re.compile(r'\b(visa\s+sponsorship|sponsor(?:ship|ing)?\s+(?:a\s+)?(?:skilled worker|visa|applicant|candidate)|certificate of sponsorship)\b', re.I)
+NEGATIVE = re.compile(r'(visa\s+sponsorship\s+(?:is\s+)?(?:not available|unavailable|not offered)|(?:do not|does not|don.t|doesn.t|cannot|can.t|will not|won.t|unable to|no)\s+(?:provide|offer|support|consider)?\s*(?:visa\s+)?sponsorship|no\s+(?:visa\s+)?sponsorship|not\s+able\s+to\s+sponsor)', re.I)
+CASE = re.compile(r'(case.by.case|individual(?:ly)?\s+(?:circumstance|basis)|discuss\s+(?:this|sponsorship).*?(?:recruit|hiring|interview)|sponsorship.*?(?:dependent on|considered|consider|subject to|assess each))', re.I | re.S)
+YES = re.compile(r'(visa\s+sponsorship\s*:\s*yes|visa\s+sponsorship\s+(?:is\s+)?available|(?:we|company)\s+(?:offer|provide|support)\s+visa\s+sponsorship|sponsorship\s+available)', re.I)
+
+def read(path):
+    return json.loads((DATA/path).read_text(encoding='utf-8'))
+
+def write(path, payload):
+    out = DATA/path
+    content = json.dumps(payload,ensure_ascii=False,indent=2) + '\n'
+    if not out.exists() or out.read_text(encoding='utf-8') != content:
+        out.write_text(content,encoding='utf-8')
+
+def get(url,max_bytes=3_000_000):
+    if not url.startswith('https://'):
+        raise ValueError('Only HTTPS source URLs permitted')
+    req = Request(url,headers={'User-Agent':UA,'Accept':'application/json,text/html,text/csv,*/*'})
+    with urlopen(req,timeout=22) as response:
+        body=response.read(max_bytes+1)
+    if len(body)>max_bytes: raise ValueError('Source exceeded size cap')
+    return body
+
+class Links(HTMLParser):
+    def __init__(self): super().__init__();self.links=[]
+    def handle_starttag(self, tag, attrs):
+        if tag=='a':
+            href=dict(attrs).get('href','')
+            if href and ('.csv' in href.lower() or 'attachment' in href.lower()): self.links.append(href)
+
+def official_register():
+    """Get current register, keeping only needed company-name matches in memory."""
+    html=get(GOV,2_000_000).decode('utf-8','replace')
+    p=Links();p.feed(html)
+    urls=[urljoin(GOV,unescape(x)) for x in p.links if '.csv' in x.lower()]
+    urls=[x for x in urls if x.startswith('https://') and ('publishing.service.gov.uk' in x or 'gov.uk' in x)]
+    if not urls: raise ValueError('Cannot identify government CSV link: check page structure')
+    preferred=[u for u in urls if 'worker' in u.lower()]
+    url=(preferred or urls)[-1]
+    rows=list(csv.DictReader(io.StringIO(get(url,25_000_000).decode('utf-8-sig','replace'))))
+    if not 20000 <= len(rows) <= 500000: raise ValueError('Register failed sanity check')
+    if not any('organisation' in k.lower() for k in rows[0]): raise ValueError('Unexpected CSV columns')
+    by_name={}
+    def getcol(r,part): return next((v for k,v in r.items() if part in k.lower()),'')
+    for r in rows:
+        name=getcol(r,'organisation').strip()
+        if not name: continue
+        by_name.setdefault(name.casefold(),[]).append({
+            'name':name,'town':getcol(r,'town').strip(),
+            'route':getcol(r,'route').strip(),'rating':(getcol(r,'type & rating') or getcol(r,'rating')).strip()})
+    return by_name,url,len(rows)
+
+def history_for(name):
+    """Read independently verified FOI figures, never compute a false zero."""
+    path=DATA/'history.csv'
+    if not name or not path.exists(): return None
+    with path.open(newline='',encoding='utf-8-sig') as f:
+        arr=[r for r in csv.DictReader(f) if r.get('employer_legal_name','').strip().casefold()==name.casefold()]
+    verified=[]
+    for a in arr:
+        if not a.get('source_url','').startswith('https://') or not a.get('checked_on') or not a.get('value'): continue
+        verified.append({'value':a['value'],'period':a['period'],'metric':a['metric'],'route':a['route'],'source_url':a['source_url'],'checked_on':a['checked_on']})
+    return sorted(verified,key=lambda x:x['period'],reverse=True)[:12] or None
+
+def sponsor_match(sources,register,source_url):
+    output={}
+    for source in sources:
+        brand=source['company'].strip()
+        legal=source.get('legal_name','').strip()
+        query=legal or brand
+        possible=register.get(query.casefold(),[])
+        # Same name may have multiple route rows or towns. Require a unique name/town for trusted match.
+        groups={(i['name'].casefold(),i['town'].casefold()) for i in possible}
+        if len(groups)==1 and possible:
+            skilled=[i for i in possible if 'skilled worker' in i['route'].lower()]
+            # A company on another route is NOT sufficient for a Skilled Worker claim.
+            hit=(skilled or possible)[0]
+            status='verified' if legal and bool(skilled) else 'name_only'
+            output[legal or brand]={
+                'status':status,'legal_name':hit['name'],'town':hit['town'],
+                'route':hit['route'],'rating':hit['rating'],'checked_on':FRESH,
+                'register_source':source_url,'history':history_for(hit['name']) if status=='verified' else None,
+                'match_basis':'Curated exact legal-name match' if status=='verified' else 'Name-only exact match; entity not confirmed'}
+    return output
+
+def as_text(s):
+    # Greenhouse location fields are objects; Ashby fields are usually strings.
+    if isinstance(s, dict):
+        s = s.get('name') or s.get('location') or ''
+    if not isinstance(s, str):
+        return ''
+    return re.sub(r'\s+', ' ', unescape(re.sub(r'<[^>]+>', ' ', s))).strip()
+
+def classify(text):
+    # Intentional conservative rules: avoid claiming that general company support applies here.
+    if NEGATIVE.search(text): return 'exclude', 'Advert includes wording against sponsorship'
+    if CASE.search(text) and SPONSOR.search(text):
+        p=CASE.search(text); return 'conditional',text[max(0,p.start()-65):p.end()+85][:260]
+    p=YES.search(text)
+    if p: return 'stated',text[max(0,p.start()-40):p.end()+75][:210]
+    return 'unknown','No unambiguous sponsorship promise found in the advert'
+
+def listing(source,item):
+    text=as_text(item.get('descriptionPlain') or item.get('descriptionHtml') or item.get('content') or '')
+    title=as_text(item.get('title',''))
+    loc=as_text(item.get('location',''))
+    addr = item.get('address') or {}
+    if not isinstance(addr, dict): addr = {}
+    postal = addr.get('postalAddress') or {}
+    if not isinstance(postal, dict): postal = {}
+    country = postal.get('addressCountry', '')
+    if not (SCOPE.search(loc) or str(country).lower() in ('gb','gbr','uk','united kingdom')): return None
+    if not KEYWORDS.search(title): return None
+    if len(text)>110000: text=text[:110000]
+    status,evidence=classify(text)
+    if status=='exclude': return None
+    url=item.get('jobUrl') or item.get('absolute_url') or ''
+    apply_url=item.get('applyUrl') or url
+    if not safe_https(url) or not safe_https(apply_url):return None
+    from urllib.parse import urlparse
+    allowed=('jobs.ashbyhq.com','job-boards.greenhouse.io','boards.greenhouse.io')
+    if urlparse(url).hostname not in allowed or urlparse(apply_url).hostname not in allowed: return None
+    # A public employer feed alone is not proof of an actively sponsorable vacancy.
+    if status=='unknown': status='unknown' # not called confirmed, even if the employer has a licence
+    role_id=hashlib.sha256(url.encode()).hexdigest()[:16]
+    salary='Not disclosed'
+    compensation=item.get('compensation') or {}
+    if isinstance(compensation,dict):
+        salary=as_text(compensation.get('scrapeableCompensationSalarySummary') or '') or salary
+    return {'id':'feed-'+role_id,'company':source['company'],'legal_name':source.get('legal_name',''),
+        'title':title,'location':loc or 'UK (see advert)','category':'Sales / commercial',
+        'salary':salary,'sponsorship':status,'evidence':evidence,'evidence_source':'Automated text extraction from employer feed',
+        'evidence_url':url,'apply_url':apply_url,'verified_on':FRESH,'posted_at':(item.get('publishedAt') or '')[:10],
+        'last_seen':FRESH,'active':True,'review':'auto','summary':'Review the employer posting and confirm whether sponsorship applies to this UK vacancy.'}
+
+def safe_https(x):return isinstance(x,str) and x.startswith('https://')
+
+def get_source_jobs(src):
+    if src['provider']=='ashby':
+        u='https://api.ashbyhq.com/posting-api/job-board/'+src['board']+'?includeCompensation=true'
+        response=json.loads(get(u,12_000_000))
+        return [x for x in response.get('jobs',[]) if x.get('isListed') is not False]
+    if src['provider']=='greenhouse':
+        u='https://boards-api.greenhouse.io/v1/boards/'+src['board']+'/jobs?content=true'
+        response=json.loads(get(u,12_000_000))
+        return response.get('jobs',[])
+    raise ValueError('Unsupported public feed provider')
+
+def main():
+    offline='--offline' in sys.argv
+    payload=read('jobs.json'); sources=[s for s in read('sources.json') if s.get('enabled')]
+    past=payload.get('jobs',[])
+    by_url={j['apply_url']:j for j in past}
+    good=0;bad=[];seen=set()
+    if not offline:
+        for src in sources[:15]:
+            try:
+                records=get_source_jobs(src)
+                good+=1
+                urls=set()
+                for i in records[:150]:
+                    job=listing(src,i)
+                    if job is None:continue
+                    u=job['apply_url'];urls.add(u);seen.add(u)
+                    old=by_url.get(u)
+                    if old and old.get('review')=='manual':
+                        old['active']=True;old['last_seen']=FRESH
+                    elif old and old.get('sponsorship') in ('stated','conditional') and job['sponsorship']=='unknown':
+                        job['sponsorship']='unknown' # Do not silently preserve outdated evidence.
+                        by_url[u]=job
+                    else: by_url[u]=job
+                # Remove only when a successful full feed no longer contains the URL.
+                for j in by_url.values():
+                    if j.get('company')==src['company'] and j.get('apply_url','').startswith(('https://jobs.ashbyhq.com/'+src['board']+'/', 'https://job-boards.greenhouse.io/'+src['board']+'/')) and j.get('apply_url') not in {a.get('applyUrl') or a.get('jobUrl') or a.get('absolute_url') for a in records}:
+                        j['active']=False
+            except (ValueError,KeyError,TimeoutError,URLError,HTTPError) as e:
+                bad.append(src['company']+': '+str(e)[:120])
+        if good==0:
+            print('No feeds succeeded; preserving last successful public data. Errors: '+'; '.join(bad),file=sys.stderr)
+            # Sponsor register still needs its daily refresh even when job APIs fail.
+            latest=None
+        else:
+            latest=list(by_url.values())
+        # Small public index, not a scraped bulk job warehouse.
+        if latest is not None:
+            latest.sort(key=lambda j:(j.get('last_seen',''),j.get('posted_at','')),reverse=True)
+            latest=latest[:300]
+            payload={'updated_at':FRESH,'mode':'automated','jobs':latest}
+            write('jobs.json',payload)
+    else: print('Offline validation: {} job cards, {} configured sources'.format(len(past),len(sources)))
+    sponsors=read('sponsors.json')
+    last=sponsors.get('updated_at') or '1970-01-01'
+    if not offline and (FRESH > last[:10]):
+        try:
+            register,reg_url,total=official_register()
+            companies=sponsor_match(sources,register,reg_url)
+            for key,record in companies.items():
+                prior=sponsors.get('companies',{}).get(key,{})
+                if prior.get('first_observed_on') and prior.get('status')==record.get('status'):
+                    record['first_observed_on']=prior['first_observed_on']
+                else:
+                    record['first_observed_on']=FRESH
+            write('sponsors.json',{'updated_at':STAMP,'official_register_url':GOV,
+                'source_csv':reg_url,'rows_read':total,'note':'Official register checked daily. Exact brand matches still need legal-entity verification. First observed here is not a licence start date. Missing CoS history is unknown, never zero.',
+                'companies':companies})
+        except Exception as e:
+            print('Sponsor refresh failed; preserving prior sponsor data: '+str(e),file=sys.stderr)
+    if bad:print('Partial feed failures: '+'; '.join(bad),file=sys.stderr)
+    # A failed source must not clear previously checked public records.
+    return 0 if offline or good>0 else 1
+
+if __name__=='__main__':sys.exit(main())
