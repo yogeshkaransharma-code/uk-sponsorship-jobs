@@ -40,6 +40,34 @@ class RefreshTests(unittest.TestCase):
         status,_=refresh.classify('Visa sponsorship will be considered on a case-by-case basis.')
         self.assertEqual(status,'conditional')
 
+    def test_marshmallow_explicit_sponsorship(self):
+        for text in (
+            'We are able to offer visa sponsorship for this position.',
+            'We are in a position to offer sponsorship and/or a visa for this position.',
+        ):
+            status, evidence = refresh.classify(text)
+            self.assertEqual(status, 'stated', text)
+            self.assertTrue(evidence)
+
+    def test_no_sponsorship_with_negative_qualifier(self):
+        for text in (
+            'We are not able to offer visa sponsorship for this position.',
+            "We aren't able to offer sponsorship for this role.",
+        ):
+            status, _ = refresh.classify(text)
+            self.assertEqual(status, 'exclude', text)
+
+    def test_insurance_vacancy_title_parsed(self):
+        src = {'company':'Flock','legal_name':'','board':'flock',
+               'sector':'Insurance / insurtech'}
+        job = {'title':'Claims Handler','location':'London',
+               'jobUrl':'https://jobs.ashbyhq.com/flock/example',
+               'descriptionPlain':'We are able to offer visa sponsorship for this position.'}
+        parsed = refresh.listing(src, job)
+        self.assertIsNotNone(parsed)
+        self.assertIn('Insurance', parsed['category'])
+        self.assertEqual(parsed['sponsorship'], 'stated')
+
     def test_no_false_history(self):
         self.assertIsNone(refresh.history_for('An Employer That Has No Verified History'))
 
