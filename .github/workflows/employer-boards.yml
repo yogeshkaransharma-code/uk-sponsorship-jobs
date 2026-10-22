@@ -1,0 +1,61 @@
+name: Discover UK jobs from employer boards
+
+on:
+  push:
+    paths:
+      - scripts/import_boards.py
+      - tests/test_import_boards.py
+      - .github/workflows/employer-boards.yml
+  schedule:
+    - cron: '19 4 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sponsorhq-employer-boards
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify UK filters and safety tests
+        run: python -m unittest discover -s tests -v
+      - name: Fetch rotating verified employer-board batch
+        run: python -u scripts/import_boards.py
+      - name: Check rebuilt public index
+        run: python scripts/build_site.py
+      - name: Save current UK employer jobs without dropping concurrent changes
+        run: |
+          set -e
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          cp data/bulk/boards-*.json /tmp/
+          for attempt in 1 2 3 4; do
+            git fetch origin main
+            git reset --hard origin/main
+            mkdir -p data/bulk
+            cp /tmp/boards-*.json data/bulk/
+            git add data/bulk/boards-*.json
+            if git diff --cached --quiet; then
+              echo 'No new vacancies in batch.'
+              exit 0
+            fi
+            git commit -m 'data: update UK jobs from additional employer career boards'
+            if git push origin HEAD:main; then
+              echo 'New employer jobs committed.'
+              exit 0
+            fi
+            sleep 2
+          done
+          echo 'Could not push due to concurrent edits'
+          exit 1
