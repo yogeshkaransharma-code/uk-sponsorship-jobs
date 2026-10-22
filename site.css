@@ -80,3 +80,10 @@
 .job-top{gap:9px}
 .job .job-bottom{justify-content:flex-end}
 @media(max-width:700px){.filter-toolbar>.primary-visa{flex-basis:100%}.filter-toolbar>.filter-field:not(.primary-visa){flex:1 1 calc(50% - 8px)}}
+
+
+.description-toggle{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin:-7px 0 20px;padding:10px 14px;background:#eef4ee;border:1px solid #dce9df;border-radius:10px;font-size:12px;color:#40614e}
+.description-toggle label{display:inline-flex;align-items:center;gap:8px;cursor:pointer;font-weight:680}
+.description-toggle input{width:16px;height:16px;accent-color:#184b3e;cursor:pointer}
+.description-toggle span{color:#69806d}
+@media(max-width:700px){.description-toggle{align-items:flex-start}.description-toggle span{width:100%;padding-left:24px}}
