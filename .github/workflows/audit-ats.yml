@@ -1,0 +1,22 @@
+name: Audit existing job link coverage
+
+on:
+  push:
+    paths:
+      - scripts/audit_ats.py
+      - .github/workflows/audit-ats.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -u scripts/audit_ats.py
