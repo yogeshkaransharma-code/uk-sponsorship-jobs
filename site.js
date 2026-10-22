@@ -4,26 +4,135 @@ const PAGE_SIZE=30;
 const escapeHtml=s=>String(s??"").replace(/[&<>"']/g,c=>c==="&"?"&amp;":c==="<"?"&lt;":c===">"?"&gt;":c.charCodeAt(0)===34?"&quot;":"&#39;");
 const safeUrl=s=>{try{const url=new URL(s);return url.protocol==="https:"?url.href:"#"}catch{return "#"}};
 const prettyDate=s=>{if(!s)return "Not yet checked";const d=new Date(String(s).slice(0,10)+"T12:00:00");return Number.isNaN(d.getTime())?"Not yet checked":d.toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"})};
-const labels={stated:"Sponsorship stated",conditional:"Case by case",potential:"Potential",unknown:"Not stated",unavailable:"Not offered"};
 function companyData(j){return sponsors[j.legal_name||j.company]||sponsors[j.company]||{}}
-function license(j){const c=companyData(j);if(c.status==="verified")return "Skilled Worker · matched";if(c.status==="name_only")return "Possible register match · check entity";return "Licence match pending"}
-function historic(j){const h=companyData(j).history||[];return h.length?"Historical CoS evidence available":"No sourced history yet"}
-function historyText(j){const h=companyData(j).history||[];return h.length?"<ul>"+h.map(x=>`<li>${escapeHtml(x.value)} ${escapeHtml(x.metric)}, ${escapeHtml(x.period)}, ${escapeHtml(x.route)} — <a target="_blank" rel="noopener noreferrer" href="${escapeHtml(safeUrl(x.source_url))}">source ↗</a></li>`).join("")+"</ul>":"Employer-level CoS figures have not been verified for this legal entity. Missing data does not mean zero sponsorship."}
-function render(){const matches=jobs.filter(j=>j.active!==false&&(filter==="all"||j.sponsorship===filter)&&(industryFilter==="all"||j.industry===industryFilter)&&(functionFilter==="all"||j.job_function===functionFilter)&&(levelFilter==="all"||j.experience_level===levelFilter)&&[j.title,j.company,j.location,j.category,j.summary,j.industry,j.job_function].join(" ").toLowerCase().includes(query));const shown=matches.slice(0,PAGE_SIZE*page);document.getElementById("result-count").textContent=matches.length+" "+(matches.length===1?"role":"roles");document.getElementById("jobs").innerHTML=matches.length?shown.map(j=>{const status=["stated","conditional","potential","unavailable"].includes(j.sponsorship)?j.sponsorship:"unknown";return `<article class="job"><div class="job-top"><div><div class="company">${escapeHtml(j.company)}</div><h3>${escapeHtml(j.title)}</h3><div class="job-meta"><span>${escapeHtml(j.location||"Location not specified")}</span><span class="bullet">·</span><span>${escapeHtml(j.salary||"Salary not disclosed")}</span></div></div><span class="status ${status}">${labels[status]}</span></div><div class="evidence ${status==="potential"||status==="unknown"?"unverified":""}"><span class="evidence-label">What the advert says</span>${status==="unknown"?"No explicit sponsorship promise or refusal identified in the advert.":j.evidence?`<q>${escapeHtml(j.evidence)}</q>`:"Sponsorship evidence not available."}</div><div class="job-facts"><div><span class="fact-label">Sponsor licence</span><span class="fact-text">${escapeHtml(license(j))}</span></div><div><span class="fact-label">Past sponsorship</span><span class="fact-text">${escapeHtml(historic(j))}</span></div></div>${j.posting_attribution?.text?`<p class="source-credit">Source credit: ${escapeHtml(j.posting_attribution.text)} · <a href="${escapeHtml(safeUrl(j.posting_attribution.link))}" target="_blank" rel="noopener noreferrer">Original source ↗</a></p>`:""}<div class="job-bottom"><details class="extra"><summary>Evidence &amp; verification details</summary><div class="more">Checked: ${escapeHtml(prettyDate(j.verified_on))}<br>Listing status: ${j.active===true?"Seen on a recent employer feed":j.active===false?"No longer found":"Current opening not yet confirmed"}<br>Licence source: <a href="https://www.gov.uk/government/publications/register-of-licensed-sponsors-workers" target="_blank" rel="noopener noreferrer">Home Office register ↗</a> · Licence checked: ${escapeHtml(prettyDate(companyData(j).checked_on))}<br>Employer match basis: ${escapeHtml(companyData(j).match_basis||"Awaiting confirmed legal entity")}<br>Historical CoS evidence: ${historyText(j)}A sponsor licence or historical CoS assignment does not prove this job will sponsor a visa. ${j.review==="auto"?"<strong>Automatically detected text: context requires review.</strong>":""}</div></details><a class="apply" href="${escapeHtml(safeUrl(j.apply_url||j.evidence_url))}" target="_blank" rel="noopener noreferrer">View role &amp; apply ↗</a></div></article>`}).join("")+(shown.length<matches.length?`<button type="button" id="load-more" class="load-more">Show more jobs (${matches.length-shown.length} remaining)</button>`:""):`<div class="notice">No jobs match those filters. Try a different role, company or sponsorship type.</div>`}
-document.getElementById("search").addEventListener("input",e=>{query=e.target.value.trim().toLowerCase();page=1;render()});document.getElementById("sponsorship-filter").addEventListener("change",e=>{filter=e.target.value;page=1;render()});
-function prepareFilters(){
-  const configs=[["industry-filter","industry",v=>v],["function-filter","job_function",v=>v],["level-filter","experience_level",v=>v]];
-  for(const [id,key] of configs){
-    const el=document.getElementById(id);
-    if(!el)continue;
-    const names=[...new Set(jobs.filter(j=>j.active!==false).map(j=>j[key]).filter(Boolean))].sort();
-    for(const name of names){const opt=document.createElement("option");opt.value=name;opt.textContent=name;el.append(opt);}
+
+let locationFilter="",salaryFilter="all",postedFilter="all";
+const licenseInfo=j=>companyData(j).status==="verified";
+const quotedEvidence=j=>(j.sponsorship==="stated"||j.sponsorship==="conditional")&&j.evidence;
+function salaryFloor(value){
+  if(!value||value==="Not disclosed")return null;
+  const text=String(value).replace(/,/g,"");
+  const match=text.match(/£\s*(\d+(?:\.\d+)?)\s*([kK])?/);
+  if(!match)return null;
+  let n=Number(match[1])*(match[2]?1000:1);
+  if(n<1000)return null;
+  // Hourly, daily and weekly amounts cannot be compared with annual salary.
+  if(/\b(hour|hourly|day|daily|week|weekly|month|monthly)\b/i.test(text))return null;
+  return n;
+}
+function postedWithin(j,days){
+  const value=j.posted_at;
+  if(!value||!/^\d{4}-\d{2}-\d{2}$/.test(value))return false;
+  const at=Date.parse(value+"T00:00:00Z");
+  const age=Date.now()-at;
+  return Number.isFinite(at)&&age>=-86400000&&age<=Number(days)*86400000;
+}
+function matchesJob(j){
+  if(j.active===false||j.sponsorship==="unavailable")return false;
+  if(filter==="stated"&&j.sponsorship!=="stated")return false;
+  if(filter==="conditional"&&j.sponsorship!=="conditional")return false;
+  if(filter==="verified"&&!licenseInfo(j))return false;
+  if(industryFilter!=="all"&&j.industry!==industryFilter)return false;
+  if(functionFilter!=="all"&&j.job_function!==functionFilter)return false;
+  if(levelFilter!=="all"&&j.experience_level!==levelFilter)return false;
+  if(locationFilter&&!String(j.location||"").toLowerCase().includes(locationFilter))return false;
+  if(salaryFilter!=="all"){
+    const salary=salaryFloor(j.salary);
+    if(salary===null||salary<Number(salaryFilter))return false;
   }
+  if(postedFilter!=="all"&&!postedWithin(j,postedFilter))return false;
+  if(query&&!([j.title,j.company,j.location,j.job_function,j.industry,j.summary,j.description_excerpt]
+    .join(" ").toLowerCase().includes(query)))return false;
+  return true;
 }
-for(const [id,fn] of [["industry-filter",v=>industryFilter=v],["function-filter",v=>functionFilter=v],["level-filter",v=>levelFilter=v]]){
-  document.getElementById(id)?.addEventListener("change",e=>{fn(e.target.value);page=1;render()});
+function renderCard(j){
+  const url=escapeHtml(safeUrl(j.apply_url||j.evidence_url));
+  const name=escapeHtml(j.company||"Employer");
+  const title=escapeHtml(j.title||"Vacancy");
+  const city=escapeHtml(j.location||"UK location not specified");
+  const pay=j.salary&&j.salary!=="Not disclosed"?'<span>'+escapeHtml(j.salary)+'</span>':"";
+  const status=j.sponsorship;
+  const evidenceTag=status==="stated"
+    ?'<span class="status stated">Sponsorship stated in advert</span>'
+    :status==="conditional"
+      ?'<span class="status conditional">Case by case</span>'
+      :licenseInfo(j)?'<span class="status stated">Skilled Worker licence verified</span>':"";
+  // Never show an unverified licence as "pending" or a fabricated history of sponsorship.
+  const credit=j.posting_attribution?.text
+    ?'<div class="source-credit">Source: '+escapeHtml(j.posting_attribution.text)+
+      ' · <a target="_blank" rel="noopener noreferrer" href="'+escapeHtml(safeUrl(j.posting_attribution.link))+'">Details ↗</a></div>'
+    :"";
+  const excerpt=String(j.description_excerpt||"").trim();
+  let description="";
+  if(excerpt){
+    description='<div class="role-summary"><span class="evidence-label">From the job advert</span>'+
+      '<p>'+escapeHtml(excerpt)+'</p></div>';
+  } else {
+    description='<p class="role-missing">Job description not in our current data. Read the original employer advert for responsibilities and requirements.</p>';
+  }
+  const h=companyData(j).history||[];
+  const source=j.evidence_source||"Employer listing";
+  const verified=licenseInfo(j)?
+    '<p><strong>Employer:</strong> Skilled Worker licence verified against the Home Office register. Not a guarantee for this vacancy.</p>':"";
+  const history=h.length?
+    '<p><strong>Historical sponsorship:</strong> independently sourced records available.</p>':"";
+  const evidence=quotedEvidence(j)?
+    '<p><strong>Advert sponsorship wording (automatically detected):</strong> '+escapeHtml(j.evidence)+'</p>':"";
+  const details=evidence||verified||history?
+    '<details class="extra"><summary>Sponsorship details</summary><div class="more">'+
+    evidence+verified+history+'<p>Advert checked: '+escapeHtml(prettyDate(j.verified_on))+
+    '. See the original advert to confirm current eligibility.</p></div></details>':"";
+  return '<article class="job"><div class="job-top"><div class="job-title-area"><div class="company">'+name+
+    '</div><h3>'+title+'</h3><div class="job-meta"><span>'+city+'</span>'+pay+'</div></div>'+
+    evidenceTag+'</div>'+description+credit+'<div class="job-bottom">'+details+
+    '<a class="apply" href="'+url+'" target="_blank" rel="noopener noreferrer">'+
+    (excerpt?'Read full advert & apply ↗':'Read job description & apply ↗')+'</a></div></article>';
 }
-document.getElementById("jobs").addEventListener("click",e=>{if(e.target.id==="load-more"){page++;render();}});
+function render(){
+  const matched=jobs.filter(matchesJob);
+  const visible=matched.slice(0,PAGE_SIZE*page);
+  const el=document.getElementById("jobs");
+  document.getElementById("result-count").textContent=matched.length.toLocaleString("en-GB")+
+    (matched.length===1?" job":" jobs");
+  el.innerHTML=visible.length?visible.map(renderCard).join("")+
+    (visible.length<matched.length?'<button type="button" id="load-more" class="load-more">Show more jobs</button>':"")
+    :'<div class="notice">No matching jobs. Try a broader search or clear the filters.</div>';
+}
+function populateFilter(id,key){
+  const el=document.getElementById(id);
+  if(!el)return;
+  const values=[...new Set(jobs.filter(j=>j.active!==false&&j.sponsorship!=="unavailable")
+    .map(j=>j[key]).filter(v=>v&&v!=="Other / unclassified"&&v!=="Not classified"&&v!=="Not specified"))].sort();
+  for(const value of values){const opt=document.createElement("option");opt.value=value;opt.textContent=value;el.add(opt);}
+}
+function prepareFilters(){
+  populateFilter("industry-filter","industry");
+  populateFilter("function-filter","job_function");
+  populateFilter("level-filter","experience_level");
+}
+function wireFilters(){
+  const setter=(id,callback)=>{const el=document.getElementById(id);if(el)el.addEventListener("input",event=>{
+    callback(event.target.value);page=1;render();
+  });};
+  setter("search",v=>query=v.toLowerCase().trim());
+  setter("location-filter",v=>locationFilter=v.toLowerCase().trim());
+  setter("industry-filter",v=>industryFilter=v);
+  setter("function-filter",v=>functionFilter=v);
+  setter("level-filter",v=>levelFilter=v);
+  setter("salary-filter",v=>salaryFilter=v);
+  setter("posted-filter",v=>postedFilter=v);
+  setter("sponsorship-filter",v=>filter=v);
+  document.getElementById("reset-filters")?.addEventListener("click",()=>{
+    for(const id of ["search","location-filter"])document.getElementById(id).value="";
+    for(const id of ["industry-filter","function-filter","level-filter","salary-filter","posted-filter","sponsorship-filter"])
+      document.getElementById(id).value="all";
+    query="";locationFilter="";industryFilter="all";functionFilter="all";levelFilter="all";
+    salaryFilter="all";postedFilter="all";filter="all";page=1;render();
+  });
+  document.getElementById("jobs").addEventListener("click",e=>{
+    if(e.target.id==="load-more"){page++;render();}
+  });
+}
 
 async function init(){try{let a,b;if(window.__PREVIEW_DATA__){a=window.__PREVIEW_DATA__.jobs;b=window.__PREVIEW_DATA__.sponsors}else{const [r1,r2]=await Promise.all([fetch("./data/jobs.json",{cache:"no-store"}),fetch("./data/sponsors.json",{cache:"no-store"})]);if(!r1.ok)throw new Error("Jobs not available");a=await r1.json();b=r2.ok?await r2.json():{companies:{}}}jobs=Array.isArray(a.jobs)?a.jobs:[];
 if(Array.isArray(a.chunks)&&a.chunks.length){
@@ -38,4 +147,4 @@ if(Array.isArray(a.chunks)&&a.chunks.length){
   }));
   for(const pageJobs of pages)jobs.push(...pageJobs);
 }
-sponsors=b.companies||{};const credit=document.getElementById("headcount-credit");if(credit&&jobs.some(j=>j.source_attribution==="Headcount Labs"))credit.hidden=false;const communityCredit=document.getElementById("community-credit");if(communityCredit&&jobs.some(j=>String(j.source_attribution||"").includes("ConorsCode")))communityCredit.hidden=false;prepareFilters();document.getElementById("last-reviewed").textContent=(a.mode==="automated"?"Job feeds checked ":"Editorial examples reviewed ")+prettyDate(a.updated_at)+(b.updated_at?" · register checked "+prettyDate(b.updated_at):" · register sync pending")+(a.mode==="automated"?" · feed checks may be delayed":" · live availability not yet checked");render()}catch(err){document.getElementById("jobs").innerHTML='<div class="notice">The listings could not be loaded. For local development, start a web server rather than opening this directory using file://.</div>';document.getElementById("last-reviewed").textContent="Data connection unavailable"}}init();
+sponsors=b.companies||{};const credit=document.getElementById("headcount-credit");if(credit&&jobs.some(j=>j.source_attribution==="Headcount Labs"))credit.hidden=false;const communityCredit=document.getElementById("community-credit");if(communityCredit&&jobs.some(j=>String(j.source_attribution||"").includes("ConorsCode")))communityCredit.hidden=false;prepareFilters();wireFilters();document.getElementById("last-reviewed").textContent=(a.mode==="automated"?"Job feeds checked ":"Editorial examples reviewed ")+prettyDate(a.updated_at)+(b.updated_at?" · register checked "+prettyDate(b.updated_at):" · register sync pending")+(a.mode==="automated"?" · feed checks may be delayed":" · live availability not yet checked");render()}catch(err){document.getElementById("jobs").innerHTML='<div class="notice">The listings could not be loaded. For local development, start a web server rather than opening this directory using file://.</div>';document.getElementById("last-reviewed").textContent="Data connection unavailable"}}init();
