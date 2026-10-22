@@ -27,13 +27,10 @@ jobs:
       - name: Verify importer and classification tests
         run: python -m unittest discover -s tests -v
       - name: Refresh official register and employer feeds
-        if: github.event_name != 'push'
         run: python scripts/refresh.py
       - name: Validate new data
-        if: github.event_name != 'push'
         run: python -m unittest discover -s tests -v
       - name: Commit changes to small public indexes
-        if: github.event_name != 'push'
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
