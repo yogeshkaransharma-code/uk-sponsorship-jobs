@@ -1,7 +1,7 @@
 name: Import UK job-data snapshot (manual, free allowance only)
 
 on:
-  # Second activation: capture API's validation error without logging credentials.
+  # Third activation: send validated array-form currentness filter.
   # Runs automatically once when this setup workflow is saved to main.
   # Future code edits do not silently consume another monthly allowance.
   push:
