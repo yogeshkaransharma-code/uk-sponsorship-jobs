@@ -1,6 +1,11 @@
 name: Import UK job-data snapshot (manual, free allowance only)
 
 on:
+  # Runs automatically once when this setup workflow is saved to main.
+  # Future code edits do not silently consume another monthly allowance.
+  push:
+    paths:
+      - .github/workflows/bulk-import.yml
   workflow_dispatch:
 
 permissions:
@@ -19,8 +24,11 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Check importer tests
-        run: python -m unittest discover -s tests -v
+      - name: Check importer and public site before using the free record allowance
+        run: |
+          python -m unittest discover -s tests -v
+          node --check site.js
+          python -m py_compile scripts/import_headcount.py scripts/build_site.py
       - name: Download current UK jobs from Headcount Labs
         env:
           HEADCOUNTLABS_API_KEY: ${{ secrets.HEADCOUNTLABS_API_KEY }}
@@ -36,13 +44,14 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           mkdir -p /tmp/sponsorhq-bulk
-          cp data/bulk/jobs.json data/bulk/manifest.json /tmp/sponsorhq-bulk/
+          cp data/bulk/headcount-*.json data/bulk/manifest.json /tmp/sponsorhq-bulk/
           for attempt in 1 2 3 4; do
             git fetch origin main
             git reset --hard origin/main
             mkdir -p data/bulk
-            cp /tmp/sponsorhq-bulk/jobs.json /tmp/sponsorhq-bulk/manifest.json data/bulk/
-            git add data/bulk/jobs.json data/bulk/manifest.json
+            rm -f data/bulk/headcount-*.json
+            cp /tmp/sponsorhq-bulk/headcount-*.json /tmp/sponsorhq-bulk/manifest.json data/bulk/
+            git add -A data/bulk/
             if git diff --cached --quiet; then
               echo 'Bulk jobs already up to date.'
               exit 0
