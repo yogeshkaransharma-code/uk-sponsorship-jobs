@@ -94,12 +94,21 @@ function renderCard(j){
   const city=escapeHtml(j.location||"UK location not specified");
   const pay=j.salary&&j.salary!=="Not disclosed"?'<span>'+escapeHtml(j.salary)+'</span>':"";
   const status=j.sponsorship;
-  const evidenceTag=status==="stated"
-    ?'<span class="status stated">Sponsorship stated in advert</span>'
-    :status==="conditional"
-      ?'<span class="status conditional">Case by case</span>'
-      :licenseInfo(j)?'<span class="status stated">Skilled Worker licence verified</span>':"";
-  // Never show an unverified licence as "pending" or a fabricated history of sponsorship.
+  // Sponsorship is the primary signal, and must be readable without clicking.
+  let visaLine="";
+  if(status==="stated"){
+    visaLine='<div class="visa-line visa-stated"><strong>Visa sponsorship: stated in advert</strong>'+
+      (quotedEvidence(j)?'<span>'+escapeHtml(j.evidence)+'</span>':"")+'</div>';
+  }else if(status==="conditional"){
+    visaLine='<div class="visa-line visa-conditional"><strong>Visa sponsorship: case by case</strong>'+
+      (quotedEvidence(j)?'<span>'+escapeHtml(j.evidence)+'</span>':"")+'</div>';
+  }else if(licenseInfo(j)){
+    visaLine='<div class="visa-line visa-licenced"><strong>Skilled Worker employer licence: verified</strong>'+
+      '<span>Whether this particular job offers sponsorship is not confirmed.</span></div>';
+  }else{
+    visaLine='<div class="visa-line visa-unknown"><strong>Visa sponsorship: not confirmed for this vacancy</strong>'+
+      '<span>No licence or vacancy-level offer has been verified by SponsorHQ.</span></div>';
+  }
   const credit=j.posting_attribution?.text
     ?'<div class="source-credit">Source: '+escapeHtml(j.posting_attribution.text)+
       ' · <a target="_blank" rel="noopener noreferrer" href="'+escapeHtml(safeUrl(j.posting_attribution.link))+'">Details ↗</a></div>'
@@ -113,23 +122,11 @@ function renderCard(j){
       (excerpt.length>290?'<details class="role-expand"><summary>Read more about this role</summary><p>'+escapeHtml(excerpt)+'</p></details>':"")+
       '</div>';
   }
-  const h=companyData(j).history||[];
-  const source=j.evidence_source||"Employer listing";
-  const verified=licenseInfo(j)?
-    '<p><strong>Employer:</strong> Skilled Worker licence verified against the Home Office register. Not a guarantee for this vacancy.</p>':"";
-  const history=h.length?
-    '<p><strong>Historical sponsorship:</strong> independently sourced records available.</p>':"";
-  const evidence=quotedEvidence(j)?
-    '<p><strong>Advert sponsorship wording (automatically detected):</strong> '+escapeHtml(j.evidence)+'</p>':"";
-  const details=evidence||verified||history?
-    '<details class="extra"><summary>Sponsorship details</summary><div class="more">'+
-    evidence+verified+history+'<p>Advert checked: '+escapeHtml(prettyDate(j.verified_on))+
-    '. See the original advert to confirm current eligibility.</p></div></details>':"";
   return '<article class="job"><div class="job-top"><div class="job-title-area"><div class="company">'+name+
     '</div><h3>'+title+'</h3><div class="job-meta"><span>'+city+'</span>'+pay+'</div></div>'+
-    evidenceTag+'</div>'+description+credit+'<div class="job-bottom">'+details+
+    '</div>'+visaLine+description+credit+'<div class="job-bottom">'+
     '<a class="apply" href="'+url+'" target="_blank" rel="noopener noreferrer">'+
-    (excerpt?'Read full advert & apply ↗':'Read job description & apply ↗')+'</a></div></article>';
+    (excerpt?'Full job advert & apply ↗':'Read full job advert ↗')+'</a></div></article>';
 }
 function render(){
   const matched=jobs.filter(matchesJob);
