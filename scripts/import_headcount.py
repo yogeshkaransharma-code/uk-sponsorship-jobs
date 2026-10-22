@@ -67,6 +67,38 @@ def good_url(url):
     return isinstance(url, str) and url.startswith("https://") and bool(urlparse(url).hostname)
 
 
+
+def infer_function(title):
+    """Broad job-function grouping from title, not employer industry."""
+    mapping = (
+        ("Insurance & Claims", r"\b(underwrit|claims|actuar|insurance|broker|reinsur)"),
+        ("Sales & Relationships", r"\b(sales|account|business development|relationship|partnership|customer success|client)"),
+        ("Finance & Accounting", r"\b(financ|accountan|audit|tax|treasury|controller)"),
+        ("Technology & Engineering", r"\b(engineer|developer|software|devops|architect|platform|cyber|security)"),
+        ("Data & Analytics", r"\b(data|analytic|scientist|machine learning|statistic)"),
+        ("Healthcare", r"\b(health|nurs|medical|clinic|physician|therapist|pharmac)"),
+        ("Education", r"\b(teacher|lecturer|professor|tutor|school|education)"),
+        ("Operations & Support", r"\b(operation|support|service|administrator)"),
+        ("Marketing & Communications", r"\b(marketing|content|brand|communications)"),
+        ("People & HR", r"\b(recruit|talent|human resources|hrbp|people partner)"),
+    )
+    for label, pattern in mapping:
+        if re.search(pattern, title, re.I):
+            return label
+    return "Other"
+
+
+def infer_seniority(title):
+    if re.search(r"\b(graduate|intern|apprentice|trainee)\b", title, re.I):
+        return "Graduate / trainee"
+    if re.search(r"\b(junior|entry.level|assistant)\b", title, re.I):
+        return "Junior / entry"
+    if re.search(r"\b(chief|ceo|cfo|cto|vp|vice president|director|head of)\b", title, re.I):
+        return "Leadership"
+    if re.search(r"\b(senior|lead|principal|staff)\b", title, re.I):
+        return "Senior"
+    return "Not specified"
+
 def record(row):
     if not isinstance(row, dict) or row.get("currentness") != "current":
         return None
@@ -123,8 +155,8 @@ def record(row):
         "location": location, "country": "GB",
         "category": "Industry not verified",
         "industry": "Other / unclassified",
-        "job_function": "Not classified",
-        "experience_level": "Not specified",
+        "job_function": infer_function(title),
+        "experience_level": infer_seniority(title),
         "salary": salary, "sponsorship": "unknown",
         "evidence": "The source metadata does not confirm sponsorship for this vacancy.",
         "evidence_source": "Headcount Labs job-data index",
