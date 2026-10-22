@@ -125,24 +125,42 @@ def history_for(name):
     return sorted(verified,key=lambda x:x['period'],reverse=True)[:12] or None
 
 def sponsor_match(sources,register,source_url):
+    """Only confirm Skilled Worker licences for curated, unambiguous legal entities."""
     output={}
     for source in sources:
         brand=source['company'].strip()
         legal=source.get('legal_name','').strip()
-        query=legal or brand
-        possible=register.get(query.casefold(),[])
-        # Same name may have multiple route rows or towns. Require a unique name/town for trusted match.
-        groups={(i['name'].casefold(),i['town'].casefold()) for i in possible}
-        if len(groups)==1 and possible:
-            skilled=[i for i in possible if 'skilled worker' in i['route'].lower()]
-            # A company on another route is NOT sufficient for a Skilled Worker claim.
-            hit=(skilled or possible)[0]
-            status='verified' if legal and bool(skilled) else 'name_only'
-            output[legal or brand]={
-                'status':status,'legal_name':hit['name'],'town':hit['town'],
-                'route':hit['route'],'rating':hit['rating'],'checked_on':FRESH,
-                'register_source':source_url,'history':history_for(hit['name']) if status=='verified' else None,
-                'match_basis':'Curated exact legal-name match' if status=='verified' else 'Name-only exact match; entity not confirmed'}
+        register_name=source.get('register_name',legal or brand).strip()
+        expected_town=source.get('register_town','').strip()
+        possible=register.get(register_name.casefold(),[])
+        if expected_town:
+            possible=[r for r in possible if r['town'].casefold()==expected_town.casefold()]
+        groups={(r['name'].casefold(),r['town'].casefold()) for r in possible}
+        if len(groups)!=1 or not possible:
+            continue
+        skilled=[r for r in possible if 'skilled worker' in r['route'].lower()]
+        hit=(skilled or possible)[0]
+        exact_legal=bool(legal) and legal.casefold()==register_name.casefold()
+        linked_entity=(bool(legal) and bool(source.get('company_number'))
+                       and source.get('entity_match_url','').startswith('https://'))
+        verified=bool(skilled) and (exact_legal or linked_entity)
+        status='verified' if verified else 'name_only'
+        record={
+            'status':status,'legal_name':legal or hit['name'],
+            'register_name':hit['name'],'town':hit['town'],
+            'route':hit['route'],'rating':hit['rating'],'checked_on':FRESH,
+            'register_source':source_url,
+            'company_number':source.get('company_number',''),
+            'entity_match_url':source.get('entity_match_url',''),
+            'history':history_for(hit['name']) if verified else None,
+            'match_basis':('Exact curated legal entity and Skilled Worker route'
+                           if exact_legal and verified
+                           else 'Curated employer-to-register identity cross-reference and Skilled Worker route'
+                           if verified else 'Register name found; legal entity or Skilled Worker route not established')
+        }
+        output[legal or brand]=record
+        if legal and brand.casefold()!=legal.casefold():
+            output[brand]=record
     return output
 
 def as_text(s):
@@ -252,7 +270,9 @@ def main():
     else: print('Offline validation: {} job cards, {} configured sources'.format(len(past),len(sources)))
     sponsors=read('sponsors.json')
     last=sponsors.get('updated_at') or '1970-01-01'
-    if not offline and (FRESH > last[:10]):
+    # A curated identity change should trigger an immediate recheck even on the same day.
+    source_hash=hashlib.sha256(json.dumps(sources,sort_keys=True).encode('utf-8')).hexdigest()
+    if not offline and (FRESH > last[:10] or sponsors.get('source_config_hash') != source_hash):
         try:
             register,reg_url,total=official_register()
             companies=sponsor_match(sources,register,reg_url)
@@ -263,7 +283,7 @@ def main():
                 else:
                     record['first_observed_on']=FRESH
             write('sponsors.json',{'updated_at':STAMP,'official_register_url':GOV,
-                'source_csv':reg_url,'rows_read':total,'note':'Official register checked daily. Exact brand matches still need legal-entity verification. First observed here is not a licence start date. Missing CoS history is unknown, never zero.',
+                'source_csv':reg_url,'rows_read':total,'source_config_hash':source_hash,'note':'Official register checked daily. Exact brand matches still need legal-entity verification. First observed here is not a licence start date. Missing CoS history is unknown, never zero.',
                 'companies':companies})
         except Exception as e:
             print('Sponsor refresh failed; preserving prior sponsor data: '+str(e),file=sys.stderr)
