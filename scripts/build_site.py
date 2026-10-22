@@ -37,12 +37,13 @@ def build() -> dict:
     jobs_source = json.loads((DATA / "jobs.json").read_text(encoding="utf-8"))
     sponsor_source = json.loads((DATA / "sponsors.json").read_text(encoding="utf-8"))
     jobs = jobs_source.get("jobs", [])
-    bulk_path = DATA / "bulk" / "jobs.json"
-    if bulk_path.exists():
-        bulk = json.loads(bulk_path.read_text(encoding="utf-8"))
-        if not isinstance(bulk.get("jobs"), list):
-            raise ValueError("Bulk import must contain a jobs list")
-        jobs = list(jobs) + bulk["jobs"]
+    for filename in ("jobs.json", "community.json"):
+        bulk_path = DATA / "bulk" / filename
+        if bulk_path.exists():
+            bulk = json.loads(bulk_path.read_text(encoding="utf-8"))
+            if not isinstance(bulk.get("jobs"), list):
+                raise ValueError("Bulk import must contain a jobs list")
+            jobs = list(jobs) + bulk["jobs"]
     companies = sponsor_source.get("companies", {})
     if not isinstance(jobs, list) or not isinstance(companies, dict):
         raise ValueError("Incorrect public data format")
