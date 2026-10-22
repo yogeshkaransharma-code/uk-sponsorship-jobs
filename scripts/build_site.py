@@ -68,6 +68,11 @@ def build() -> dict:
                             len(details["description_excerpt"]) > len(row.get("description_excerpt") or "")):
                 row["description_excerpt"] = details["description_excerpt"]
                 row["description_source"] = details.get("description_source", "")
+            if details and details.get("sponsorship") in ("stated", "conditional", "unavailable"):
+                if row.get("review") != "manual":
+                    row["sponsorship"] = details["sponsorship"]
+                    row["evidence"] = details.get("evidence", "")
+                    row["evidence_source"] = details.get("evidence_source", "")
     companies = sponsor_source.get("companies", {})
     if not isinstance(jobs, list) or not isinstance(companies, dict):
         raise ValueError("Incorrect public data format")
