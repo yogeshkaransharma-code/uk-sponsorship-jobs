@@ -72,6 +72,7 @@ function matchesJob(j){
   if(filter==="stated"&&j.sponsorship!=="stated")return false;
   if(filter==="conditional"&&j.sponsorship!=="conditional")return false;
   if(filter==="verified"&&!licenseInfo(j))return false;
+  if(filter==="name_match"&&companyData(j).status!=="name_match")return false;
   if(filter==="unknown"&&j.sponsorship!=="unknown")return false;
   if(industryFilter!=="all"&&j._sector!==industryFilter)return false;
   if(functionFilter!=="all"&&j.job_function!==functionFilter)return false;
@@ -105,6 +106,9 @@ function renderCard(j){
   }else if(licenseInfo(j)){
     visaLine='<div class="visa-line visa-licenced"><strong>Skilled Worker employer licence: verified</strong>'+
       '<span>Whether this particular job offers sponsorship is not confirmed.</span></div>';
+  }else if(companyData(j).status==="name_match"){
+    visaLine='<div class="visa-line visa-candidate"><strong>Possible licensed sponsor · name match only</strong>'+
+      '<span>Similar name on the Home Office register; legal employer identity and sponsorship for this vacancy are not verified.</span></div>';
   }else{
     visaLine='<div class="visa-line visa-unknown"><strong>Visa sponsorship: not confirmed for this vacancy</strong>'+
       '<span>No licence or vacancy-level offer has been verified by SponsorHQ.</span></div>';
@@ -132,6 +136,15 @@ function renderCard(j){
 }
 function render(){
   const matched=jobs.filter(matchesJob);
+  const priority=j=>{
+    if(j.sponsorship==="stated")return 0;
+    if(j.sponsorship==="conditional")return 1;
+    if(licenseInfo(j))return 2;
+    if(companyData(j).status==="name_match")return 3;
+    return 4;
+  };
+  // Evidence-first search: unknown opportunities remain browseable.
+  matched.sort((a,b)=>priority(a)-priority(b));
   const visible=matched.slice(0,PAGE_SIZE*page);
   const el=document.getElementById("jobs");
   document.getElementById("result-count").textContent=matched.length.toLocaleString("en-GB")+
