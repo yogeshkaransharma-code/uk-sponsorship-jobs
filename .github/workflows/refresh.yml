@@ -1,0 +1,43 @@
+name: Refresh sponsor evidence and job feeds
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'data/jobs.json'
+      - 'data/sponsors.json'
+  schedule:
+    - cron: '17 * * * *'
+  workflow_dispatch:
+concurrency:
+  group: sponsorship-data-refresh
+  cancel-in-progress: false
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify importer and classification tests
+        run: python -m unittest discover -s tests -v
+      - name: Refresh official register and employer feeds
+        run: python scripts/refresh.py
+      - name: Validate new data
+        run: python -m unittest discover -s tests -v
+      - name: Commit changes to small public indexes
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add data/jobs.json data/sponsors.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'data: refresh source-backed vacancy and sponsor evidence'
+            git push
+          else
+            echo 'No data changes.'
+          fi

@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f7f7f3">
+  <meta name="description" content="UK jobs with clear sponsorship evidence. Check advertised sponsorship, company licence and historical evidence, then apply directly.">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests">
+  <title>UK sponsorship jobs — simple, evidence-led search</title>
+  <link rel="stylesheet" href="site.css">
+  <script src="site.js" defer></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container nav-bar">
+      <a class="brand" href="#home" aria-label="Sponsorship Jobs home"><span class="brand-mark" aria-hidden="true">↗</span><span>UK Sponsorship <strong>Jobs</strong></span></a>
+      <a class="header-link" href="https://www.gov.uk/government/publications/register-of-licensed-sponsors-workers" target="_blank" rel="noopener noreferrer">Official sponsor register <span aria-hidden="true">↗</span></a>
+    </div>
+  </header>
+
+  <main id="home" class="container">
+    <section class="hero" aria-labelledby="headline">
+      <div class="eyebrow"><span class="eyebrow-dot" aria-hidden="true"></span> UK JOBS, WITH THE EVIDENCE</div>
+      <h1 id="headline">Find the job.<br><em>Know the sponsorship.</em></h1>
+      <p class="hero-copy">Less searching through adverts. More clarity on who offers sponsorship, who might consider it, and what we actually know about the employer.</p>
+    </section>
+
+    <section class="search-zone" aria-label="Search vacancies">
+      <div class="search-fields">
+        <div class="search-input-wrap"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="10.8" cy="10.8" r="7.4"/><path d="m16.4 16.4 4.3 4.3"/></svg><label class="sr-only" for="search">Search role, company or city</label><input id="search" type="search" placeholder="Job title, company or location" autocomplete="off"></div>
+        <label class="sr-only" for="sponsorship-filter">Sponsorship type</label>
+        <select id="sponsorship-filter" aria-label="Sponsorship type"><option value="all">All sponsorship types</option><option value="stated">Sponsorship stated</option><option value="conditional">Considered case by case</option><option value="potential">Potential sponsorship</option></select>
+      </div>
+    </section>
+
+    <section class="results" aria-labelledby="results-title">
+      <div class="results-head"><div><h2 id="results-title">Latest opportunities</h2><p id="last-reviewed">Checking latest reviewed listings…</p></div><div id="result-count" class="result-count" aria-live="polite"></div></div>
+      <div id="jobs" class="job-list"><div class="notice">Loading job listings…</div></div>
+    </section>
+
+    <section class="principles" aria-label="How to interpret the evidence">
+      <div><span class="line-star">✳</span><h2>Clear labels. No false promises.</h2></div>
+      <p><strong>Stated</strong> means the advert mentions sponsorship. <strong>Case by case</strong> means it may be considered. <strong>Potential</strong> means a role may be worth asking about — never that sponsorship is guaranteed. An employer's licence and historical Certificates of Sponsorship are separate evidence.</p>
+    </section>
+  </main>
+  <footer class="footer"><div class="container footer-inner"><span>Independent job discovery. Apply directly with employers.</span><span><a href="https://www.gov.uk/government/publications/register-of-licensed-sponsors-workers" target="_blank" rel="noopener noreferrer">Home Office licence CSV ↗</a> · <a href="https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/" target="_blank" rel="noopener noreferrer">OGL v3.0 ↗</a></span></div></footer>
+</body>
+</html>
