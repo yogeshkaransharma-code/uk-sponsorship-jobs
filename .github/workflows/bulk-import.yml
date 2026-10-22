@@ -1,12 +1,11 @@
 name: Import UK job-data snapshot (manual, free allowance only)
 
 on:
-  # Third activation: send validated array-form currentness filter.
-  # Runs automatically once when this setup workflow is saved to main.
-  # Future code edits do not silently consume another monthly allowance.
-  push:
-    paths:
-      - .github/workflows/bulk-import.yml
+  # Monthly rather than hourly: the provider's free budget is 100,000
+  # returned records per UTC calendar month, shared with this account.
+  # Never turn on paid usage to make an import work.
+  schedule:
+    - cron: '13 5 2 * *'
   workflow_dispatch:
 
 permissions:
