@@ -93,6 +93,17 @@ def record(row):
     if not selected:
         return None
     p, url = selected
+    attribution = p.get("attribution") or {}
+    required = attribution.get("required") is True
+    credit_text = attribution.get("text")
+    credit_link = attribution.get("link")
+    if required and not isinstance(credit_text, str):
+        # Honour publisher-required attribution rather than removing rights data.
+        return None
+    posting_credit = None
+    if required:
+        posting_credit = {"text": credit_text.strip()[:200],
+                          "link": credit_link if good_url(credit_link) else url}
     city = next((x.get("city") for x in places if x.get("city")), None)
     region = next((x.get("region") for x in places if x.get("region")), None)
     location = (city or region or "United Kingdom") + ", UK" if city or region else "United Kingdom"
@@ -124,6 +135,7 @@ def record(row):
         "active": True, "review": "auto",
         "summary": "UK vacancy listed on the employer's recruitment system. Visa policy not confirmed.",
         "source_attribution": "Headcount Labs",
+        **({"posting_attribution": posting_credit} if posting_credit else {}),
     }
 
 
@@ -143,6 +155,9 @@ def main():
     maximum = min(LIMIT, int(os.environ.get("HEADCOUNT_MAX_JOBS", LIMIT)))
     if maximum < 1:
         raise SystemExit("A positive maximum is required")
+    print("Verifying access and free UK job count (count requests are not billable)…", flush=True)
+    counts = api("/v1/jobs/count?country=GB&currentness=current", key=key)
+    print("Provider UK available-count response: {}".format(str(counts)[:200]), flush=True)
     print("Requesting GB-only current jobs, maximum {} (manual import, not recurring)".format(maximum), flush=True)
     response = api("/v1/jobs/exports", key=key, method="POST", payload={
         "country": "GB", "currentness": "current", "max_records": maximum,
