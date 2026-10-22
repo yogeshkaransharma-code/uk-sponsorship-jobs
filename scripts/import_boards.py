@@ -113,7 +113,11 @@ def adapt(board,raw,stamp):
     # Avoid connecting to an arbitrary source-provided URL during collection.
     # Source URLs are outgoing application links only.
     from refresh import classify, job_function, experience_level, as_text
-    status,evidence=classify(as_text(desc)[:15000])
+    clean_description=as_text(desc)
+    status,evidence=classify(clean_description[:15000])
+    excerpt=clean_description[:900].rstrip()
+    if len(clean_description)>900 and ' ' in excerpt:
+        excerpt=excerpt.rsplit(' ',1)[0]+'…'
     canonical=url.split("#")[0].split("?")[0].rstrip("/").removesuffix("/application")
     uid=hashlib.sha256(canonical.encode()).hexdigest()[:20]
     return {
@@ -122,7 +126,7 @@ def adapt(board,raw,stamp):
        "location":location[:160] or "United Kingdom",
        "category":"Industry not yet classified","industry":"Other / unclassified",
        "job_function":job_function(title),"experience_level":experience_level(title),
-       "salary":"Not disclosed","sponsorship":status,
+       "salary":"Not disclosed","sponsorship":status,"description_excerpt":excerpt,
        "evidence":evidence,"evidence_source":"Public employer careers API; automated text detection",
        "evidence_url":url,"apply_url":url,"verified_on":stamp,
        "posted_at":str(posted)[:10],"last_seen":stamp,"active":True,
