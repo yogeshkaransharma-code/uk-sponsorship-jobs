@@ -30,7 +30,7 @@ KEYWORDS = re.compile(r'\b(account executive|sales|business development|relation
 SPONSOR = re.compile(r'\b(visa\s+sponsorship|sponsor(?:ship|ing)?\s+(?:a\s+)?(?:skilled worker|visa|applicant|candidate)|certificate of sponsorship)\b', re.I)
 NEGATIVE = re.compile(r'(visa\s+sponsorship\s+(?:is\s+)?(?:not available|unavailable|not offered)|(?:do not|does not|don.t|doesn.t|cannot|can.t|will not|won.t|unable to|no)\s+(?:provide|offer|support|consider)?\s*(?:visa\s+)?sponsorship|no\s+(?:visa\s+)?sponsorship|not\s+able\s+to\s+sponsor)', re.I)
 CASE = re.compile(r'(case.by.case|individual(?:ly)?\s+(?:circumstance|basis)|discuss\s+(?:this|sponsorship).*?(?:recruit|hiring|interview)|sponsorship.*?(?:dependent on|considered|consider|subject to|assess each))', re.I | re.S)
-YES = re.compile(r'(visa\s+sponsorship\s*:\s*yes|visa\s+sponsorship\s+(?:is\s+)?available|(?:we|company)\s+(?:offer|provide|support)\s+visa\s+sponsorship|sponsorship\s+available)', re.I)
+YES = re.compile(r'(visa\s+sponsorship\s*:\s*(?:yes|available)|visa\s+sponsorship\s+(?:is\s+)?available|(?:we|company)\s+(?:(?:are\s+)?able\s+to\s+|can\s+|do\s+)?(?:offer|provide|support)\s+visa\s+sponsorship|(?:we\s+)?(?:are\s+)?(?:in\s+a\s+position\s+to\s+|able\s+to\s+)?offer\s+(?:visa\s+)?sponsorship(?:\s+and/or\s+a\s+visa)?|sponsorship\s+available)', re.I)
 
 def read(path):
     return json.loads((DATA/path).read_text(encoding='utf-8'))
@@ -174,8 +174,9 @@ def as_text(s):
 def classify(text):
     # Intentional conservative rules: avoid claiming that general company support applies here.
     if NEGATIVE.search(text): return 'exclude', 'Advert includes wording against sponsorship'
-    if CASE.search(text) and SPONSOR.search(text):
-        p=CASE.search(text); return 'conditional',text[max(0,p.start()-65):p.end()+85][:260]
+    if SPONSOR.search(text) and (CASE.search(text) or re.search(r'(?:right\s+candidate|not\s+(?:able|possible)\s+to\s+.{0,30}sponsor\s+.{0,50}every\s+(?:role|candidate))',text,re.I)):
+        p=CASE.search(text) or SPONSOR.search(text)
+        return 'conditional',text[max(0,p.start()-65):p.end()+110][:260]
     p=YES.search(text)
     if p: return 'stated',text[max(0,p.start()-40):p.end()+75][:210]
     return 'unknown','No unambiguous sponsorship promise found in the advert'
@@ -198,7 +199,7 @@ def listing(source,item):
     apply_url=item.get('applyUrl') or url
     if not safe_https(url) or not safe_https(apply_url):return None
     from urllib.parse import urlparse
-    allowed=('jobs.ashbyhq.com','job-boards.greenhouse.io','boards.greenhouse.io')
+    allowed=('jobs.ashbyhq.com','job-boards.greenhouse.io','job-boards.eu.greenhouse.io','boards.greenhouse.io')
     if urlparse(url).hostname not in allowed or urlparse(apply_url).hostname not in allowed: return None
     # A public employer feed alone is not proof of an actively sponsorable vacancy.
     if status=='unknown': status='unknown' # not called confirmed, even if the employer has a licence
@@ -207,11 +208,12 @@ def listing(source,item):
     compensation=item.get('compensation') or {}
     if isinstance(compensation,dict):
         salary=as_text(compensation.get('scrapeableCompensationSalarySummary') or '') or salary
+    sector=source.get('sector','Sales / commercial')
     return {'id':'feed-'+role_id,'company':source['company'],'legal_name':source.get('legal_name',''),
-        'title':title,'location':loc or 'UK (see advert)','category':'Sales / commercial',
+        'title':title,'location':loc or 'UK (see advert)','category':sector,
         'salary':salary,'sponsorship':status,'evidence':evidence,'evidence_source':'Automated text extraction from employer feed',
         'evidence_url':url,'apply_url':apply_url,'verified_on':FRESH,'posted_at':(item.get('publishedAt') or '')[:10],
-        'last_seen':FRESH,'active':True,'review':'auto','summary':'Review the employer posting and confirm whether sponsorship applies to this UK vacancy.'}
+        'last_seen':FRESH,'active':True,'review':'auto','summary':source.get('sector','Commercial')+' — check employer advert for role-specific sponsorship and eligibility.'}
 
 def safe_https(x):return isinstance(x,str) and x.startswith('https://')
 
@@ -251,7 +253,7 @@ def main():
                     else: by_url[u]=job
                 # Remove only when a successful full feed no longer contains the URL.
                 for j in by_url.values():
-                    if j.get('company')==src['company'] and j.get('apply_url','').startswith(('https://jobs.ashbyhq.com/'+src['board']+'/', 'https://job-boards.greenhouse.io/'+src['board']+'/')) and j.get('apply_url') not in {a.get('applyUrl') or a.get('jobUrl') or a.get('absolute_url') for a in records}:
+                    if j.get('company')==src['company'] and j.get('apply_url','').startswith(('https://jobs.ashbyhq.com/'+src['board']+'/', 'https://job-boards.greenhouse.io/'+src['board']+'/', 'https://job-boards.eu.greenhouse.io/'+src['board']+'/')) and j.get('apply_url') not in {a.get('applyUrl') or a.get('jobUrl') or a.get('absolute_url') for a in records}:
                         j['active']=False
             except (ValueError,KeyError,TimeoutError,URLError,HTTPError) as e:
                 bad.append(src['company']+': '+str(e)[:120])
