@@ -25,34 +25,41 @@
       <p class="hero-copy">Find UK vacancies across industries. Filter by sponsorship evidence, and see what employers have — and haven't — actually said.</p>
     </section>
 
-    <section class="search-zone" aria-label="Search UK vacancies">
+
+    <section class="search-zone" aria-label="Find jobs">
       <div class="search-fields">
-        <div class="search-input-wrap"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="10.8" cy="10.8" r="7.4"/><path d="m16.4 16.4 4.3 4.3"/></svg><label class="sr-only" for="search">Search job title or keywords</label><input id="search" type="search" placeholder="Job title, skill or keyword" autocomplete="off"></div>
-      </div>
-      <div class="primary-filters">
-        <div class="filter-field"><label for="industry-filter">Industry</label><select id="industry-filter"><option value="all">All industries</option></select></div>
-        <div class="filter-field"><label for="function-filter">Job function</label><select id="function-filter"><option value="all">All functions</option></select></div>
-        <div class="filter-field"><label for="location-filter">Location</label><input type="search" id="location-filter" placeholder="City or region" autocomplete="off"></div>
-        <div class="filter-field"><label for="level-filter">Experience level</label><select id="level-filter"><option value="all">Any level</option></select></div>
+        <div class="search-input-wrap">
+          <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="10.8" cy="10.8" r="7.4"/><path d="m16.4 16.4 4.3 4.3"/></svg>
+          <label for="search" class="sr-only">Job title, keyword or employer</label>
+          <input id="search" type="search" placeholder="Job title, skill or employer" autocomplete="off">
+        </div>
+        <div class="search-input-wrap location-input">
+          <label class="sr-only" for="location-filter">Location</label>
+          <input id="location-filter" type="search" placeholder="City or region" autocomplete="off">
+        </div>
       </div>
       <div class="filter-toolbar">
-        <div class="filter-field filter-sponsorship"><label for="sponsorship-filter">Sponsorship evidence</label><select id="sponsorship-filter"><option value="all">All possible opportunities</option><option value="stated">Explicitly offered</option><option value="conditional">Considered case by case</option><option value="verified_silent">Licensed employer · advert unconfirmed</option><option value="unknown">Sponsorship unconfirmed</option></select></div>
+        <div class="filter-field"><label for="function-filter">Job function</label><select id="function-filter"><option value="all">All job types</option></select></div>
+        <div class="filter-field"><label for="industry-filter">Industry</label><select id="industry-filter"><option value="all">All industries</option></select></div>
         <details class="advanced-filters" id="advanced-filters">
-          <summary>More filters <span aria-hidden="true">↗</span></summary>
+          <summary>More filters <span aria-hidden="true">▾</span></summary>
           <div class="filter-grid">
-            <div class="filter-field"><label for="employer-filter">Employer</label><input type="search" id="employer-filter" placeholder="Company name" autocomplete="off"></div>
-            <div class="filter-field"><label for="salary-filter">Minimum advertised salary</label><select id="salary-filter"><option value="all">Any salary</option><option value="25000">£25,000+</option><option value="30000">£30,000+</option><option value="40000">£40,000+</option><option value="50000">£50,000+</option><option value="60000">£60,000+</option><option value="80000">£80,000+</option></select></div>
-            <div class="filter-field"><label for="work-filter">Working arrangement</label><select id="work-filter"><option value="all">Any arrangement</option><option value="remote">Remote (stated)</option><option value="hybrid">Hybrid (stated)</option><option value="onsite">On-site (stated)</option></select></div>
-            <div class="filter-field"><label for="posted-filter">Date advertised</label><select id="posted-filter"><option value="all">Any date</option><option value="1">Last 24 hours</option><option value="3">Last 3 days</option><option value="7">Last 7 days</option><option value="14">Last 14 days</option><option value="30">Last 30 days</option></select></div>
-            <div class="filter-field"><label for="years-filter">Years required in advert</label><select id="years-filter"><option value="all">Any / not stated</option><option value="0-2">0–2 years</option><option value="3-5">3–5 years</option><option value="6-9">6–9 years</option><option value="10+">10+ years</option></select></div>
-            <div class="filter-field"><label for="licence-filter">Sponsor licence evidence</label><select id="licence-filter"><option value="all">Any / not yet checked</option><option value="verified">Verified Skilled Worker licence</option></select></div>
-            <label class="filter-checkbox"><input type="checkbox" id="salary-known"> Only jobs with salary information</label>
+            <div class="filter-field"><label for="level-filter">Experience level</label><select id="level-filter"><option value="all">Any level</option></select></div>
+            <div class="filter-field"><label for="salary-filter">Minimum advertised salary</label><select id="salary-filter"><option value="all">Any salary</option><option value="30000">£30,000+</option><option value="40000">£40,000+</option><option value="50000">£50,000+</option><option value="60000">£60,000+</option></select></div>
+            <div class="filter-field"><label for="sponsorship-filter">Visa sponsorship</label>
+              <select id="sponsorship-filter">
+                <option value="all">All jobs worth checking</option>
+                <option value="stated">Advert confirms sponsorship</option>
+                <option value="conditional">Considered case by case</option>
+                <option value="verified">Employer licence verified</option>
+              </select>
+            </div>
+            <div class="filter-field"><label for="posted-filter">Date posted</label><select id="posted-filter"><option value="all">Any date</option><option value="3">Last 3 days</option><option value="7">Last 7 days</option><option value="30">Last 30 days</option></select></div>
           </div>
-          <p class="filter-note">Years required only appear where the advert gives a number. Many imported jobs lack industry, working-pattern, salary or visa-policy data; we won't guess. A sponsor licence doesn't guarantee sponsorship of a vacancy.</p>
+          <p class="filter-note">Experience level is based on the job title, not an assumed number of years. Industry, salary and visa details aren't available for every listing.</p>
         </details>
-        <button type="button" class="reset-filters" id="reset-filters">Clear filters</button>
+        <button class="reset-filters" type="button" id="reset-filters">Clear</button>
       </div>
-      <div id="active-filters" class="active-filters" aria-live="polite"></div>
     </section>
 
     <aside class="founder-note" aria-labelledby="founder-message-title">
@@ -69,7 +76,7 @@
 
     <section class="principles" aria-label="How to interpret the evidence">
       <div><span class="line-star">✳</span><h2>Clear labels. No false promises.</h2></div>
-      <p><strong>Explicitly offered</strong> means the advert mentions sponsorship. <strong>Case by case</strong> means the employer may consider it. <strong>Unconfirmed</strong> means we have not established the vacancy policy. We leave vacancies that explicitly rule out sponsorship out of the default search. A licence is not a visa promise, and our industry and experience data are incomplete.</p>
+      <p>We show sponsorship evidence <strong>only when verified or clearly stated in the advert.</strong> If there is no evidence, we don't make a claim. Vacancies explicitly ruling out sponsorship are excluded from the default search. Employer licences do not guarantee sponsorship for every role. Full adverts remain available at the original employer link.</p>
     </section>
   </main>
   <footer class="footer"><div class="container footer-inner"><span>Independent job discovery. Apply directly with employers.</span><span id="community-credit" hidden>Additional job listings: <a href="https://github.com/ConorsCode/open-jobs-data" target="_blank" rel="noopener noreferrer">open-jobs-data ↗</a> (MIT, © 2026 contributors). Apply through original employer links.</span><span id="headcount-credit" hidden>Additional job metadata: <a href="https://headcountlabs.com/" target="_blank" rel="noopener noreferrer">Headcount Labs ↗</a>. Original adverts belong to their publishers.</span><span><a href="https://www.gov.uk/government/publications/register-of-licensed-sponsors-workers" target="_blank" rel="noopener noreferrer">Home Office licence CSV ↗</a> · <a href="https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/" target="_blank" rel="noopener noreferrer">OGL v3.0 ↗</a></span></div></footer>
