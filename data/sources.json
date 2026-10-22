@@ -9,7 +9,8 @@
     "register_town": "London",
     "company_number": "15213676",
     "entity_match_url": "https://sponsorsearch.co.uk/company/ankar-ai",
-    "sector": "Technology / B2B sales"
+    "sector": "Technology / B2B sales",
+    "industry": "Technology"
   },
   {
     "company": "Neudata",
@@ -21,7 +22,8 @@
     "register_town": "London",
     "company_number": "09942593",
     "entity_match_url": "https://find-and-update.company-information.service.gov.uk/company/09942593",
-    "sector": "Financial services / B2B sales"
+    "sector": "Financial services / B2B sales",
+    "industry": "Banking & Finance"
   },
   {
     "company": "Mistral AI",
@@ -33,7 +35,8 @@
     "register_town": "London",
     "company_number": "14894136",
     "entity_match_url": "https://sponsorarchive.com/sponsor/mistral-ai-uk-limited",
-    "sector": "Technology / B2B sales"
+    "sector": "Technology / B2B sales",
+    "industry": "Technology"
   },
   {
     "company": "Sequence",
@@ -41,7 +44,8 @@
     "board": "sequence",
     "legal_name": "",
     "enabled": true,
-    "sector": "Financial technology"
+    "sector": "Financial technology",
+    "industry": "Banking & Finance"
   },
   {
     "company": "Marshmallow",
@@ -49,7 +53,8 @@
     "board": "marshmallow",
     "legal_name": "",
     "sector": "Insurance / financial services",
-    "enabled": true
+    "enabled": true,
+    "industry": "Insurance"
   },
   {
     "company": "Flock",
@@ -57,7 +62,8 @@
     "board": "flock",
     "legal_name": "",
     "sector": "Insurance / insurtech",
-    "enabled": true
+    "enabled": true,
+    "industry": "Insurance"
   },
   {
     "company": "iwoca",
@@ -65,7 +71,8 @@
     "board": "iwoca.co.uk",
     "legal_name": "",
     "sector": "Insurance / SME finance",
-    "enabled": true
+    "enabled": true,
+    "industry": "Insurance"
   },
   {
     "company": "Insurtech Insights",
@@ -73,7 +80,8 @@
     "board": "insurtechinsights",
     "legal_name": "",
     "sector": "Insurance / B2B sales",
-    "enabled": true
+    "enabled": true,
+    "industry": "Insurance"
   },
   {
     "company": "Coalition UK",
@@ -81,7 +89,8 @@
     "board": "uk-coalition",
     "legal_name": "",
     "sector": "Insurance / broker relationships",
-    "enabled": true
+    "enabled": true,
+    "industry": "Insurance"
   },
   {
     "company": "SiriusPoint",
@@ -89,7 +98,8 @@
     "board": "siriuspoint",
     "legal_name": "",
     "sector": "Insurance / reinsurance",
-    "enabled": true
+    "enabled": true,
+    "industry": "Insurance"
   },
   {
     "company": "Apollo",
@@ -97,7 +107,8 @@
     "board": "apollosyndicate1969",
     "legal_name": "",
     "sector": "Insurance / Lloyd's market",
-    "enabled": true
+    "enabled": true,
+    "industry": "Insurance"
   },
   {
     "company": "Adyen",
@@ -105,7 +116,8 @@
     "board": "adyen",
     "legal_name": "",
     "sector": "Financial services / payments",
-    "enabled": true
+    "enabled": true,
+    "industry": "Banking & Finance"
   },
   {
     "company": "Anthropic",
@@ -113,7 +125,8 @@
     "board": "anthropic",
     "legal_name": "",
     "sector": "Technology / enterprise sales",
-    "enabled": true
+    "enabled": true,
+    "industry": "Technology"
   },
   {
     "company": "Octus",
@@ -121,7 +134,8 @@
     "board": "octus",
     "legal_name": "",
     "sector": "Financial services / relationship management",
-    "enabled": true
+    "enabled": true,
+    "industry": "Banking & Finance"
   },
   {
     "company": "Alpha FMC",
@@ -129,6 +143,43 @@
     "board": "alphafmcroles",
     "legal_name": "",
     "sector": "Financial services / client relationships",
+    "enabled": true,
+    "industry": "Banking & Finance"
+  },
+  {
+    "company": "Monzo",
+    "provider": "greenhouse",
+    "board": "monzo",
+    "legal_name": "",
+    "sector": "Banking / digital banking",
+    "industry": "Banking & Finance",
+    "enabled": true
+  },
+  {
+    "company": "GoCardless",
+    "provider": "greenhouse",
+    "board": "gocardless",
+    "legal_name": "",
+    "sector": "Financial services / payments",
+    "industry": "Banking & Finance",
+    "enabled": true
+  },
+  {
+    "company": "Tide",
+    "provider": "greenhouse",
+    "board": "tide",
+    "legal_name": "",
+    "sector": "Financial services / business banking",
+    "industry": "Banking & Finance",
+    "enabled": true
+  },
+  {
+    "company": "hyperexponential",
+    "provider": "ashby",
+    "board": "hyperexponential",
+    "legal_name": "",
+    "sector": "Insurance / technology",
+    "industry": "Insurance",
     "enabled": true
   }
 ]
