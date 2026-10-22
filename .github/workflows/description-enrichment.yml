@@ -1,0 +1,60 @@
+name: Recover job descriptions from employer feeds
+
+on:
+  push:
+    paths:
+      - scripts/enrich_descriptions.py
+      - tests/test_description_enrichment.py
+      - .github/workflows/description-enrichment.yml
+  schedule:
+    - cron: '37 2 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sponsorhq-description-enrichment
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 26
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Check importer and matching logic
+        run: python -m unittest discover -s tests -v
+      - name: Fetch public employer descriptions (no provider API key)
+        run: python -u scripts/enrich_descriptions.py
+      - name: Validate merged website
+        run: python scripts/build_site.py
+      - name: Store recovered descriptions without overwriting other data
+        run: |
+          set -e
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          cp data/enriched/ats-*.json /tmp/
+          for attempt in 1 2 3 4; do
+            git fetch origin main
+            git reset --hard origin/main
+            mkdir -p data/enriched
+            cp /tmp/ats-*.json data/enriched/
+            git add data/enriched/ats-*.json
+            if git diff --cached --quiet; then
+              echo 'No new job descriptions.'
+              exit 0
+            fi
+            git commit -m 'data: recover job descriptions from employers public career feeds'
+            if git push origin HEAD:main; then
+              echo 'Description overlays committed; Pages deployment follows.'
+              exit 0
+            fi
+            sleep 3
+          done
+          exit 1
