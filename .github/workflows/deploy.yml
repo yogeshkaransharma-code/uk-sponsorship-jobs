@@ -1,29 +1,43 @@
 name: Deploy public job board
+
 on:
   push:
     branches: [main]
   workflow_dispatch:
+  # Updates committed by GITHUB_TOKEN do not fire normal push workflows.
+  # A completed refresh does fire this event; deploy the current main branch.
+  workflow_run:
+    workflows: ["Refresh sponsor evidence and job feeds"]
+    types: [completed]
+
 concurrency:
   group: pages-deploy
   cancel-in-progress: true
+
 jobs:
   build:
-    if: ${{ github.event.repository.private == false }}
+    if: ${{ github.event.repository.private == false && (github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success') }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: python -m unittest discover -s tests -v
-      - run: python scripts/build_site.py
-      - uses: actions/upload-pages-artifact@v4
+      - name: Validate importer, sponsor matches and published data
+        run: python -m unittest discover -s tests -v
+      - name: Build public files
+        run: python scripts/build_site.py
+      - name: Upload GitHub Pages artifact
+        uses: actions/upload-pages-artifact@v4
         with:
           path: _site
+
   deploy:
-    if: ${{ github.event.repository.private == false }}
+    if: ${{ github.event.repository.private == false && (github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success') }}
     needs: build
     runs-on: ubuntu-latest
     permissions:
@@ -33,5 +47,6 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/deploy-pages@v4
+      - name: Deploy to GitHub Pages
+        uses: actions/deploy-pages@v4
         id: deployment
