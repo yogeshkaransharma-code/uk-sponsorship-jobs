@@ -118,7 +118,7 @@ def record(row):
         "evidence": "The source metadata does not confirm sponsorship for this vacancy.",
         "evidence_source": "Headcount Labs job-data index",
         "evidence_url": url, "apply_url": url,
-        "verified_on": row.get("job_updated_at", "")[:10] or row.get("job_first_seen_at", "")[:10],
+        "verified_on": (row.get("job_updated_at") or "")[:10] or (row.get("job_first_seen_at") or "")[:10],
         "posted_at": (p.get("source_posted_at") or "")[:10],
         "last_seen": time.strftime("%Y-%m-%d", time.gmtime()),
         "active": True, "review": "auto",
@@ -174,16 +174,27 @@ def main():
         raise RuntimeError("Import returned no valid UK vacancies; existing records untouched")
     out = DATA / "bulk"
     out.mkdir(exist_ok=True, parents=True)
-    (out / "jobs.json").write_text(json.dumps({"jobs": items}, ensure_ascii=False, separators=(",", ":")) + "\n", encoding="utf-8")
+    # Each file stays well below GitHub's 100 MB per-file limit.
+    # A single 100k-record JSON would be too large to maintain in Git.
+    for old_file in out.glob("headcount-*.json"):
+        old_file.unlink()
+    chunk_size = 5000
+    for offset in range(0, len(items), chunk_size):
+        number = offset // chunk_size + 1
+        dest = out / ("headcount-%03d.json" % number)
+        dest.write_text(json.dumps({"jobs": items[offset:offset + chunk_size]},
+                                   ensure_ascii=False, separators=(",", ":")) + "\n",
+                        encoding="utf-8")
     (out / "manifest.json").write_text(json.dumps({
-        "provider": "Headcount Labs", "licence": "CC BY 4.0 for provider contributions",
-        "attribution": "Job data: Headcount Labs (https://headcountlabs.com), CC BY 4.0. Job postings belong to their publishers.",
+        "provider": "Headcount Labs",
+        "terms": "https://headcountlabs.com/terms/",
+        "attribution": "Job data supplied by Headcount Labs (https://headcountlabs.com). Original adverts belong to employers.",
         "imported_on": time.strftime("%Y-%m-%d", time.gmtime()),
         "fetched_records": len(rows), "valid_uk_jobs": len(items),
-        "source": "https://headcountlabs.com/license/",
+        "chunks": (len(items) + chunk_size - 1) // chunk_size,
+        "source": "https://headcountlabs.com/",
     }, indent=2) + "\n", encoding="utf-8")
     print("Prepared {} UK jobs for SponsorHQ's next deployment".format(len(items)))
-    return 0
     return 0
 
 
