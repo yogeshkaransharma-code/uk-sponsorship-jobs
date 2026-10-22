@@ -1,0 +1,59 @@
+name: Identify possible sponsor-register name matches
+
+on:
+  push:
+    paths:
+      - scripts/match_sponsor_names.py
+      - tests/test_sponsor_candidates.py
+      - .github/workflows/register-candidates.yml
+  schedule:
+    - cron: '18 3 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sponsorhq-sponsor-candidates
+  cancel-in-progress: false
+
+jobs:
+  register:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run tests
+        run: python -m unittest discover -s tests -v
+      - name: Compare employer labels with official Skilled Worker register
+        run: python -u scripts/match_sponsor_names.py
+      - name: Validate public job index with clearly flagged possible matches
+        run: python scripts/build_site.py
+      - name: Save non-verified company name candidates
+        run: |
+          set -e
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          cp data/register_candidates.json /tmp/sponsorhq-register-candidates.json
+          for attempt in 1 2 3 4; do
+            git fetch origin main
+            git reset --hard origin/main
+            cp /tmp/sponsorhq-register-candidates.json data/register_candidates.json
+            git add data/register_candidates.json
+            if git diff --cached --quiet; then
+              echo 'Name match index already current.'
+              exit 0
+            fi
+            git commit -m 'data: update potential UK sponsor name matches'
+            if git push origin HEAD:main; then
+              echo 'Register name candidates committed.'
+              exit 0
+            fi
+            sleep 3
+          done
+          exit 1
