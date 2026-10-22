@@ -151,13 +151,18 @@ def source_board(source):
                 source_canon=canonical(source_link)
                 if source_canon and source_canon in {u for u,_ in targets}:
                     candidates.append(source_canon)
+            from refresh import classify
+            status,evidence=classify(description)
             for canon in candidates:
                 if not canon:continue
-                # Don't claim visa sponsorship from keyword inference.
-                # Preserve original short evidence and show original wording for review.
-                matched[canon]={"description_excerpt":description,
-                                "description_source":"Public employer "+provider+" API",
-                                "description_checked_at":datetime.now(timezone.utc).date().isoformat()}
+                details={"description_excerpt":description,
+                         "description_source":"Public employer "+provider+" API",
+                         "description_checked_at":datetime.now(timezone.utc).date().isoformat()}
+                if status in ("stated","conditional","unavailable") and evidence:
+                    details["sponsorship"]=status
+                    details["evidence"]=evidence
+                    details["evidence_source"]="Automatically detected employer advert text; review original wording"
+                matched[canon]=details
             count+=1
         return provider,token,len(fetched),matched,""
     except (HTTPError,URLError,TimeoutError,OSError,ValueError,TypeError,KeyError) as exc:
