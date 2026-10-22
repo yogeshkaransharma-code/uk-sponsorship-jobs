@@ -21,8 +21,8 @@
   <main id="home" class="container">
     <section class="hero" aria-labelledby="headline">
       <div class="eyebrow"><span class="eyebrow-dot" aria-hidden="true"></span> UK JOBS, WITH THE EVIDENCE</div>
-      <h1 id="headline">Find the job.<br><em>Know the sponsorship.</em></h1>
-      <p class="hero-copy">Find UK vacancies across industries. Filter by sponsorship evidence, and see what employers have — and haven't — actually said.</p>
+      <h1 id="headline">UK jobs, without<br><em>the sponsorship guesswork.</em></h1>
+      <p class="hero-copy">Search UK vacancies by sector, role and location. See sponsorship evidence beside the job, not buried in another menu.</p>
     </section>
 
 
@@ -39,24 +39,24 @@
         </div>
       </div>
       <div class="filter-toolbar">
+        <div class="filter-field primary-visa"><label for="sponsorship-filter">Visa sponsorship</label><select id="sponsorship-filter">
+          <option value="all">All vacancies</option>
+          <option value="stated">Advert offers sponsorship</option>
+          <option value="conditional">Case by case</option>
+          <option value="verified">Verified sponsor licence</option>
+          <option value="unknown">Not confirmed for vacancy</option>
+        </select></div>
+        <div class="filter-field"><label for="industry-filter">Industry / job area</label><select id="industry-filter"><option value="all">All sectors</option></select></div>
         <div class="filter-field"><label for="function-filter">Job function</label><select id="function-filter"><option value="all">All job types</option></select></div>
-        <div class="filter-field"><label for="industry-filter">Industry</label><select id="industry-filter"><option value="all">All industries</option></select></div>
         <details class="advanced-filters" id="advanced-filters">
           <summary>More filters <span aria-hidden="true">▾</span></summary>
           <div class="filter-grid">
             <div class="filter-field"><label for="level-filter">Experience level</label><select id="level-filter"><option value="all">Any level</option></select></div>
             <div class="filter-field"><label for="salary-filter">Minimum advertised salary</label><select id="salary-filter"><option value="all">Any salary</option><option value="30000">£30,000+</option><option value="40000">£40,000+</option><option value="50000">£50,000+</option><option value="60000">£60,000+</option></select></div>
-            <div class="filter-field"><label for="sponsorship-filter">Visa sponsorship</label>
-              <select id="sponsorship-filter">
-                <option value="all">All jobs worth checking</option>
-                <option value="stated">Advert confirms sponsorship</option>
-                <option value="conditional">Considered case by case</option>
-                <option value="verified">Employer licence verified</option>
-              </select>
-            </div>
+            <div class="filter-field"><label for="work-filter">Working arrangement</label><select id="work-filter"><option value="all">Any working pattern</option><option value="remote">Remote (confirmed)</option><option value="hybrid">Hybrid (confirmed)</option><option value="in_person">On-site (confirmed)</option></select></div>
             <div class="filter-field"><label for="posted-filter">Date posted</label><select id="posted-filter"><option value="all">Any date</option><option value="3">Last 3 days</option><option value="7">Last 7 days</option><option value="30">Last 30 days</option></select></div>
           </div>
-          <p class="filter-note">Experience level is based on the job title, not an assumed number of years. Industry, salary and visa details aren't available for every listing.</p>
+          <p class="filter-note">Experience level is based on the job title, not an assumed number of years. The sector filter also groups clearly identifiable jobs by role when employer industry is unavailable. Salary, years and work patterns are not always disclosed.</p>
         </details>
         <button class="reset-filters" type="button" id="reset-filters">Clear</button>
       </div>
@@ -76,7 +76,7 @@
 
     <section class="principles" aria-label="How to interpret the evidence">
       <div><span class="line-star">✳</span><h2>Clear labels. No false promises.</h2></div>
-      <p>We show sponsorship evidence <strong>only when verified or clearly stated in the advert.</strong> If there is no evidence, we don't make a claim. Vacancies explicitly ruling out sponsorship are excluded from the default search. Employer licences do not guarantee sponsorship for every role. Full adverts remain available at the original employer link.</p>
+      <p><strong>Evidence first.</strong> Where an advert states sponsorship, we show its wording. If only the employer's licence is verified, we make that distinction clear. When sponsorship isn't confirmed, we say so. Vacancies expressly refusing sponsorship are excluded. Full original adverts are linked; excerpt availability varies by source.</p>
     </section>
   </main>
   <footer class="footer"><div class="container footer-inner"><span>Independent job discovery. Apply directly with employers.</span><span id="community-credit" hidden>Additional job listings: <a href="https://github.com/ConorsCode/open-jobs-data" target="_blank" rel="noopener noreferrer">open-jobs-data ↗</a> (MIT, © 2026 contributors). Apply through original employer links.</span><span id="headcount-credit" hidden>Additional job metadata: <a href="https://headcountlabs.com/" target="_blank" rel="noopener noreferrer">Headcount Labs ↗</a>. Original adverts belong to their publishers.</span><span><a href="https://www.gov.uk/government/publications/register-of-licensed-sponsors-workers" target="_blank" rel="noopener noreferrer">Home Office licence CSV ↗</a> · <a href="https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/" target="_blank" rel="noopener noreferrer">OGL v3.0 ↗</a></span></div></footer>
