@@ -22,3 +22,40 @@
 .load-more:hover{border-color:var(--green)}
 .status.unavailable{background:#f8eaea;color:#8f4242}
 @media(max-width:700px){.filter-grid{grid-template-columns:1fr;gap:11px}.advanced-filters{padding-top:12px}}
+
+
+/* SponsorHQ: job searching first, sponsorship evidence only when meaningful. */
+.search-zone{position:relative;padding-bottom:24px}
+.search-fields{grid-template-columns:minmax(0,1.8fr) minmax(170px,1fr)}
+.search-input-wrap.location-input{border-left:1px solid var(--line);padding-left:17px}
+.filter-toolbar{display:flex;align-items:flex-end;flex-wrap:wrap;gap:12px;margin-top:12px;position:relative}
+.filter-field{min-width:0;flex:1 1 190px}
+.filter-field label{display:block;font-size:12px;font-weight:650;color:var(--muted);margin-bottom:5px}
+.filter-field input,.filter-field select{display:block;width:100%;min-height:40px;border-radius:9px;border:1px solid var(--line);background:var(--paper);padding:9px 12px;font:inherit;font-size:13px;color:var(--ink)}
+.filter-toolbar .advanced-filters{padding:0;flex:0 0 auto}
+.filter-toolbar .advanced-filters summary{border:1px solid var(--line);border-radius:9px;padding:10px 15px;min-height:40px;display:block;background:var(--paper);font-size:13px;font-weight:700;white-space:nowrap;list-style:none}
+.filter-toolbar .advanced-filters summary::-webkit-details-marker{display:none}
+.filter-toolbar .filter-grid{position:absolute;z-index:20;top:calc(100% + 10px);left:0;right:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;background:#fff;border:1px solid var(--line);box-shadow:0 14px 40px rgba(18,50,35,.14);border-radius:14px;margin:0;padding:18px}
+.filter-toolbar .filter-grid .filter-field{min-width:0}
+.filter-toolbar .filter-note{grid-column:1/-1;margin:0;color:var(--muted);font-size:12px}
+.reset-filters{align-self:end;border:none;background:transparent;color:var(--muted);font-size:13px;padding:10px 7px;cursor:pointer}
+.reset-filters:hover{text-decoration:underline;color:var(--green)}
+.job-title-area{min-width:0}
+.job .role-summary{background:#f7faf7;border-left:2px solid #b0cbb9;border-radius:2px;margin-top:17px;padding:12px 16px;font-size:14px;line-height:1.65;color:#455d4f}
+.role-summary .evidence-label{color:#4a7a5c}
+.role-summary p{margin:5px 0 0;white-space:pre-line}
+.job .role-missing{color:#7b887e;font-size:13px;margin:16px 0 0;line-height:1.5}
+.job .job-bottom{min-height:55px}
+.job .job-bottom:has(> .apply:only-child){justify-content:flex-end}
+.job .source-credit{font-size:11px;color:var(--muted);margin:11px 0 0}
+.job .source-credit a{text-decoration:underline}
+.job .job-top .status{font-size:11px}
+@media(max-width:700px){
+ .search-fields{grid-template-columns:1fr}
+ .search-input-wrap.location-input{border-top:1px solid var(--line);border-left:0;padding-left:13px}
+ .filter-toolbar{gap:9px}
+ .filter-toolbar>.filter-field{flex:1 1 calc(50% - 9px)}
+ .filter-toolbar .filter-grid{grid-template-columns:1fr;max-height:min(65vh,580px);overflow:auto}
+ .filter-toolbar .advanced-filters{flex:0 1 auto}
+ .job .job-bottom{align-items:stretch}
+}
