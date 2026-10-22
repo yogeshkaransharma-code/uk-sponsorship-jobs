@@ -73,7 +73,13 @@ def build() -> dict:
                     row["sponsorship"] = details["sponsorship"]
                     row["evidence"] = details.get("evidence", "")
                     row["evidence_source"] = details.get("evidence_source", "")
-    companies = sponsor_source.get("companies", {})
+    companies = dict(sponsor_source.get("companies", {}))
+    candidate_file = DATA / "register_candidates.json"
+    if candidate_file.exists():
+        candidate_doc = json.loads(candidate_file.read_text(encoding="utf-8"))
+        for brand, entry in candidate_doc.get("candidates", {}).items():
+            if brand not in companies and entry.get("status") == "name_match":
+                companies[brand] = entry
     if not isinstance(jobs, list) or not isinstance(companies, dict):
         raise ValueError("Incorrect public data format")
 
