@@ -176,6 +176,20 @@ function prepareFilters(){
   }
   populateFilter("function-filter","job_function");
   populateFilter("level-filter","experience_level");
+  const available=jobs.filter(j=>j.active!==false&&j.sponsorship!=="unavailable");
+  const numberFor={
+    all:available.length,
+    stated:available.filter(j=>j.sponsorship==="stated").length,
+    conditional:available.filter(j=>j.sponsorship==="conditional").length,
+    verified:available.filter(licenseInfo).length,
+    name_match:available.filter(j=>companyData(j).status==="name_match").length,
+    unknown:available.filter(j=>j.sponsorship==="unknown").length,
+  };
+  const visaSelect=document.getElementById("sponsorship-filter");
+  for(const option of visaSelect.options){
+    if(Number.isFinite(numberFor[option.value]))
+      option.textContent+=" ("+numberFor[option.value].toLocaleString("en-GB")+")";
+  }
 }
 function wireFilters(){
   const setter=(id,callback)=>{const el=document.getElementById(id);if(el)el.addEventListener("input",event=>{
