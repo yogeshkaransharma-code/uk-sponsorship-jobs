@@ -1,4 +1,4 @@
-# UK Sponsorship Jobs — public beta
+# SponsorHQ — UK Jobs & Sponsorship Evidence (public beta)
 
 Lightweight UK vacancies directory designed around **three separate evidence types**: a job advert's sponsorship statement, a precise current Skilled Worker register match, and previous sponsorship records where independently sourced.
 
