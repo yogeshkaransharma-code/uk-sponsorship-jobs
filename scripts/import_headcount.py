@@ -160,8 +160,10 @@ def record(row):
         excerpt=excerpt.rsplit(" ",1)[0]+"…"
     # Identify wording in the actual advert conservatively. This remains
     # automated evidence; users must check employer wording before applying.
-    from refresh import classify
-    status,evidence=classify(plain[:15000]) if plain else ("unknown","No description collected for visa analysis")
+    status,evidence=("unknown","No description collected for visa analysis")
+    if plain:
+        from refresh import classify
+        status,evidence=classify(plain[:15000])
     arrangement=unwrap(row.get("work_arrangement"))
     arrangement=arrangement if arrangement in ("remote","hybrid","in_person") else ""
     return {
