@@ -6,8 +6,48 @@ const safeUrl=s=>{try{const url=new URL(s);return url.protocol==="https:"?url.hr
 const prettyDate=s=>{if(!s)return "Not yet checked";const d=new Date(String(s).slice(0,10)+"T12:00:00");return Number.isNaN(d.getTime())?"Not yet checked":d.toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"})};
 function companyData(j){return sponsors[j.legal_name||j.company]||sponsors[j.company]||{}}
 
-let locationFilter="",salaryFilter="all",postedFilter="all";
+let locationFilter="",salaryFilter="all",postedFilter="all",workFilter="all";
 const licenseInfo=j=>companyData(j).status==="verified";
+
+/** Field or sector inferred from an unambiguous role title; not a claim about
+ * the employer's registered industry. Uncertain roles remain unclassified. */
+function sectorForJob(j){
+  const known=String(j.industry||"").trim();
+  if(known&&known!=="Other / unclassified"&&known!=="Sales"&&known!=="Other"){
+    return known==="Financial services"?"Banking & Finance":known;
+  }
+  const t=String(j.title||"").toLowerCase();
+  const rules=[
+    ["Insurance",/\b(insurance|reinsurance|underwrit|claims handler|actuar|insurance broker|loss adjust)/],
+    ["Healthcare & Social Care",/\b(nurs|midwi|doctor|physician|clinical|dentist|pharmac|radiograph|physiotherap|occupational therap|paramedic|social care|care assistant|care worker|medical officer|healthcare)/],
+    ["Education",/\b(teacher|teaching|lecturer|professor|teaching assistant|primary school|secondary school|tutor|education officer|educator)/],
+    ["Retail & Consumer",/\b(retail|store manager|shop assistant|shop manager|merchandis|store associate|cashier|sales floor)/],
+    ["Hospitality & Tourism",/\b(hotel|hospitality|chef|cook\b|kitchen porter|bartender|waiter|waitress|front of house|restaurant|travel agent|tourism)/],
+    ["Logistics & Transport",/\b(logistics|warehouse|forklift|delivery driver|truck driver|hgv|supply chain|transport planner|fleet manager|freight|shipping coordinator|dispatch)/],
+    ["Construction & Property",/\b(construction|quantity surveyor|site manager|site engineer|surveyor|bricklayer|carpenter|electrician|plumber|real estate|property manager|estate agent|building services)/],
+    ["Manufacturing & Production",/\b(manufactur|production operat|factory|assembly line|machine operator|cnc|quality inspector|process technician|packaging operat)/],
+    ["Legal",/\b(solicitor|barrister|paralegal|lawyer|legal counsel|litigation|legal secretary)/],
+    ["Banking & Finance",/\b(bank|financial advis|financial planner|credit analyst|investment analyst|wealth manage|asset manage|mortgage advis|accountant|auditor|payroll officer|tax manager)/],
+    ["Technology & IT",/\b(software|developer|frontend|front.end|backend|back.end|devops|cloud engineer|cybersecurity|cyber security|it support|network engineer|data engineer|machine learning|systems engineer|site reliability)/],
+    ["Engineering & Science",/\b(mechanical engineer|civil engineer|electrical engineer|chemical engineer|aerospace|research scientist|lab technician|scientific officer|biochemist)/],
+    ["Energy & Environment",/\b(renewable|wind turbine|solar engineer|energy analyst|utilities|environmental scientist|sustainability manager|water treatment)/],
+    ["Marketing & Media",/\b(marketing|copywriter|social media|brand manager|graphic designer|content creator|journalist|public relations)/],
+    ["HR & Recruitment",/\b(recruiter|recruitment|talent acquisition|hr business partner|human resources|people advisor)/],
+    ["Public & Community Services",/\b(civil service|local government|policy officer|community support|police officer|firefighter)/],
+  ];
+  for(const [name,rule] of rules)if(rule.test(t))return name;
+  return "Other / not classified";
+}
+const jobWorkType=j=>{
+  const explicit=String(j.work_arrangement||"").toLowerCase();
+  if(["remote","hybrid","in_person"].includes(explicit))return explicit;
+  const loc=String(j.location||"");
+  if(/\b(hybrid)\b/i.test(loc))return "hybrid";
+  if(/\b(remote|home.based|work from home)\b/i.test(loc))return "remote";
+  if(/\b(on.site|onsite|on site)\b/i.test(loc))return "in_person";
+  return "";
+};
+
 const quotedEvidence=j=>(j.sponsorship==="stated"||j.sponsorship==="conditional")&&j.evidence;
 function salaryFloor(value){
   if(!value||value==="Not disclosed")return null;
@@ -32,7 +72,8 @@ function matchesJob(j){
   if(filter==="stated"&&j.sponsorship!=="stated")return false;
   if(filter==="conditional"&&j.sponsorship!=="conditional")return false;
   if(filter==="verified"&&!licenseInfo(j))return false;
-  if(industryFilter!=="all"&&j.industry!==industryFilter)return false;
+  if(filter==="unknown"&&j.sponsorship!=="unknown")return false;
+  if(industryFilter!=="all"&&j._sector!==industryFilter)return false;
   if(functionFilter!=="all"&&j.job_function!==functionFilter)return false;
   if(levelFilter!=="all"&&j.experience_level!==levelFilter)return false;
   if(locationFilter&&!String(j.location||"").toLowerCase().includes(locationFilter))return false;
@@ -41,6 +82,7 @@ function matchesJob(j){
     if(salary===null||salary<Number(salaryFilter))return false;
   }
   if(postedFilter!=="all"&&!postedWithin(j,postedFilter))return false;
+  if(workFilter!=="all"&&jobWorkType(j)!==workFilter)return false;
   if(query&&!([j.title,j.company,j.location,j.job_function,j.industry,j.summary,j.description_excerpt]
     .join(" ").toLowerCase().includes(query)))return false;
   return true;
@@ -107,7 +149,19 @@ function populateFilter(id,key){
   for(const value of values){const opt=document.createElement("option");opt.value=value;opt.textContent=value;el.add(opt);}
 }
 function prepareFilters(){
-  populateFilter("industry-filter","industry");
+  const dropdown=document.getElementById("industry-filter");
+  const sectors=new Map();
+  for(const job of jobs){
+    job._sector=sectorForJob(job);
+    if(job.sponsorship==="unavailable"||job.active===false)continue;
+    sectors.set(job._sector,(sectors.get(job._sector)||0)+1);
+  }
+  for(const [name,count] of [...sectors].sort((a,b)=>a[0].localeCompare(b[0]))){
+    const option=document.createElement("option");
+    option.value=name;
+    option.textContent=name+" ("+count.toLocaleString("en-GB")+")";
+    dropdown.add(option);
+  }
   populateFilter("function-filter","job_function");
   populateFilter("level-filter","experience_level");
 }
@@ -122,13 +176,14 @@ function wireFilters(){
   setter("level-filter",v=>levelFilter=v);
   setter("salary-filter",v=>salaryFilter=v);
   setter("posted-filter",v=>postedFilter=v);
+  setter("work-filter",v=>workFilter=v);
   setter("sponsorship-filter",v=>filter=v);
   document.getElementById("reset-filters")?.addEventListener("click",()=>{
     for(const id of ["search","location-filter"])document.getElementById(id).value="";
-    for(const id of ["industry-filter","function-filter","level-filter","salary-filter","posted-filter","sponsorship-filter"])
+    for(const id of ["industry-filter","function-filter","level-filter","salary-filter","posted-filter","sponsorship-filter","work-filter"])
       document.getElementById(id).value="all";
     query="";locationFilter="";industryFilter="all";functionFilter="all";levelFilter="all";
-    salaryFilter="all";postedFilter="all";filter="all";page=1;render();
+    salaryFilter="all";postedFilter="all";workFilter="all";filter="all";page=1;render();
   });
   document.getElementById("jobs").addEventListener("click",e=>{
     if(e.target.id==="load-more"){page++;render();}
