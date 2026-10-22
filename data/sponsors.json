@@ -1,8 +1,9 @@
 {
-  "updated_at": "2026-10-22T17:43:34Z",
+  "updated_at": "2026-10-22T17:48:22Z",
   "official_register_url": "https://www.gov.uk/government/publications/register-of-licensed-sponsors-workers",
   "source_csv": "https://assets.publishing.service.gov.uk/media/6ad9bef8b62d80a107bc5b43/SP_-_Worker_and_Temporary_Worker_Web_Register_-_2026-10-22.csv",
   "rows_read": 143192,
+  "source_config_hash": "6330f40ff67f539b382a896feb73c25724fd3bef207bcbf4bf6e35ddeea8e583",
   "note": "Official register checked daily. Exact brand matches still need legal-entity verification. First observed here is not a licence start date. Missing CoS history is unknown, never zero.",
   "companies": {}
 }
