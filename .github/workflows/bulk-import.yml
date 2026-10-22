@@ -1,0 +1,58 @@
+name: Import UK job-data snapshot (manual, free allowance only)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sponsorhq-bulk-import
+  cancel-in-progress: false
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Check importer tests
+        run: python -m unittest discover -s tests -v
+      - name: Download current UK jobs from Headcount Labs
+        env:
+          HEADCOUNTLABS_API_KEY: ${{ secrets.HEADCOUNTLABS_API_KEY }}
+          HEADCOUNT_MAX_JOBS: '100000'
+        run: python scripts/import_headcount.py
+      - name: Validate public build
+        run: |
+          python scripts/build_site.py
+          python -m unittest discover -s tests -v
+      - name: Commit new job index while preserving concurrent changes
+        run: |
+          set -e
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          mkdir -p /tmp/sponsorhq-bulk
+          cp data/bulk/jobs.json data/bulk/manifest.json /tmp/sponsorhq-bulk/
+          for attempt in 1 2 3 4; do
+            git fetch origin main
+            git reset --hard origin/main
+            mkdir -p data/bulk
+            cp /tmp/sponsorhq-bulk/jobs.json /tmp/sponsorhq-bulk/manifest.json data/bulk/
+            git add data/bulk/jobs.json data/bulk/manifest.json
+            if git diff --cached --quiet; then
+              echo 'Bulk jobs already up to date.'
+              exit 0
+            fi
+            git commit -m 'data: import verified-source UK job index with original employer links'
+            if git push origin HEAD:main; then
+              echo 'Bulk job index committed. Pages deployment follows.'
+              exit 0
+            fi
+            sleep 2
+          done
+          echo 'Could not push bulk index without concurrent change'
+          exit 1
