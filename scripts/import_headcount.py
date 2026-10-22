@@ -154,7 +154,7 @@ def record(row):
     original=unwrap(row.get("description"))
     if not isinstance(original,str):original=""
     plain=html.unescape(re.sub(r"<[^>]+>", " ", original))
-    plain=re.sub(r"\\s+", " ", plain).strip()
+    plain=re.sub(r"\s+", " ", plain).strip()
     excerpt=plain[:750].rstrip()
     if len(plain)>750 and " " in excerpt:
         excerpt=excerpt.rsplit(" ",1)[0]+"…"
