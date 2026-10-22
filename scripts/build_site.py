@@ -103,8 +103,41 @@ def build() -> dict:
     for filename in ("index.html", "site.css", "site.js"):
         shutil.copy2(ROOT / filename, OUT / filename)
     (OUT / ".nojekyll").write_text("", encoding="utf-8")
-    # Minimize metadata on wire: omit boilerplate, personal data and full descriptions.
-    # The employer's own job page remains the authoritative application source.
+    # Keep initial page loads lightweight even as we recover thousands of
+    # long job descriptions. Serve the longer employer text only when a reader
+    # expands that job, in bounded, separately cached static JSON chunks.
+    from hashlib import sha256
+    full_descriptions = {}
+    for job in selected:
+        excerpt = job.get("description_excerpt")
+        if not isinstance(excerpt, str) or len(excerpt) <= 340:
+            continue
+        key = sha256(job["apply_url"].encode("utf-8")).hexdigest()[:22]
+        full_descriptions[key] = excerpt
+        preview = excerpt[:310]
+        if " " in preview:
+            preview = preview.rsplit(" ", 1)[0]
+        job["description_excerpt"] = preview + "…"
+        job["description_key"] = key
+    if full_descriptions:
+        description_dir = OUT / "data" / "descriptions"
+        description_dir.mkdir(parents=True, exist_ok=True)
+        rows = list(full_descriptions.items())
+        for start in range(0, len(rows), 120):
+            filename = "part-%04d.json" % (start // 120 + 1)
+            part = dict(rows[start:start + 120])
+            (description_dir / filename).write_text(
+                json.dumps(part, ensure_ascii=False, separators=(",", ":")) + "\n",
+                encoding="utf-8",
+            )
+            for key in part:
+                # Map by content key to avoid a per-job file on GitHub Pages.
+                full_descriptions[key] = "./data/descriptions/" + filename
+        for job in selected:
+            key = job.get("description_key")
+            if key:
+                job["description_ref"] = full_descriptions[key]
+    # Publish only compact search metadata and preview snippets.
     selected = [{
         k: v for k, v in job.items()
         if k in (
@@ -113,7 +146,7 @@ def build() -> dict:
             "sponsorship", "evidence", "evidence_source", "evidence_url",
             "apply_url", "verified_on", "posted_at", "last_seen", "active",
             "review", "summary", "source_attribution", "posting_attribution",
-            "description_excerpt", "description_source",
+            "description_excerpt", "description_source", "description_key", "description_ref",
         )
     } for job in selected]
     # Static Pages cannot query a server-side database. Split large indexes
