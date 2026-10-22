@@ -1,11 +1,6 @@
 name: Recover Workday and SmartRecruiters descriptions
 
 on:
-  push:
-    paths:
-      - scripts/enrich_other_ats.py
-      - tests/test_other_ats.py
-      - .github/workflows/other-ats-descriptions.yml
   schedule:
     - cron: '29 1,9,17 * * *'
   workflow_dispatch:
