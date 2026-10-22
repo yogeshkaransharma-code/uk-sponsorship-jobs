@@ -59,3 +59,7 @@
  .filter-toolbar .advanced-filters{flex:0 1 auto}
  .job .job-bottom{align-items:stretch}
 }
+
+.role-expand{margin-top:9px;border-top:1px solid #dde9df;padding-top:8px}
+.role-expand summary{font-size:12px;font-weight:700;color:var(--green);cursor:pointer}
+.role-expand p{font-size:13px;line-height:1.65;color:#4e5d52;margin:9px 0 0}
