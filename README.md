@@ -2,7 +2,7 @@
 
 Lightweight UK vacancies directory designed around **three separate evidence types**: a job advert's sponsorship statement, a precise current Skilled Worker register match, and previous sponsorship records where independently sourced.
 
-**Status:** code integrated but not yet deployed; data feeds require the first successful GitHub Actions run. Prototype listings dated 22 October 2026 must not be advertised as current unless refreshed.
+**Status (22 October 2026):** GitHub data refresh has collected employer-feed jobs and matched current Skilled Worker sponsor-register entries for Ankar, Neudata and Mistral AI. This is a private repository, not a public deployment. Sponsorship history counts remain unpopulated until separately sourced.
 
 ## Data and costs
 
@@ -38,3 +38,7 @@ https://www.gov.uk/government/publications/register-of-licensed-sponsors-workers
 - Home Office FOI2026/03501 for 2025 CoS used; do not combine "used" with prior-year "assigned" as if identical.
 
 **No sponsorship guarantee or immigration advice is provided.**
+
+## Verified data milestone
+
+The initial job importer and sponsor-register matcher have written records to `data/jobs.json` and `data/sponsors.json`. The current three companies with a curated legal-entity match are **Ankar (ANKAR.AI LTD / Ankar.ai)**, **Neudata (NEUDATA LIMITED)**, and **Mistral AI (MISTRAL AI UK LTD / Mistral AI UK Limited)**. These are licence matches, not promises that each role offers sponsorship. The register has no historical Certificate of Sponsorship counts. Any unverified employer or missing history stays explicitly marked unknown.
