@@ -89,6 +89,9 @@ def build() -> dict:
     for job in jobs:
         if not isinstance(job, dict) or job.get("active") is not True:
             continue
+        if job.get("sponsorship") == "unavailable":
+            # The site is specifically for people seeking possible sponsorship.
+            continue
         # Show every currently observed UK vacancy regardless of sponsorship policy.
         # The separate evidence fields are informational and can be filtered.
         if not recent(job.get("last_seen"), days=35 if str(job.get("id", "")).startswith("headcount-") else 14):
@@ -188,7 +191,21 @@ def build() -> dict:
         (OUT / "data" / filename).write_text(
             json.dumps(content, ensure_ascii=False, separators=(",", ":")) + "\n", encoding="utf-8"
         )
-    return {"published_jobs": len(selected), "published_sponsor_entries": len(public_sponsors["companies"])}
+    return {
+        "published_jobs": len(selected),
+        "published_sponsor_entries": len(public_sponsors["companies"]),
+        "jobs_with_readable_description": sum(bool(job.get("description_excerpt")) for job in selected),
+        "sponsorship_stated": sum(job.get("sponsorship") == "stated" for job in selected),
+        "sponsorship_conditional": sum(job.get("sponsorship") == "conditional" for job in selected),
+        "sponsor_legal_identity_verified": sum(
+            (public_sponsors["companies"].get(job.get("company"), {}).get("status") == "verified")
+            for job in selected
+        ),
+        "possible_sponsor_name_matches": sum(
+            (public_sponsors["companies"].get(job.get("company"), {}).get("status") == "name_match")
+            for job in selected
+        ),
+    }
 
 
 if __name__ == "__main__":
