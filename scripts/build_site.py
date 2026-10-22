@@ -47,6 +47,15 @@ def build() -> dict:
     for job in jobs:
         if not isinstance(job, dict) or job.get("active") is not True:
             continue
+        # This is a visa-sponsorship directory, not a general jobs feed.
+        # Unconfirmed vacancies are withheld until advert evidence or a
+        # curated Skilled Worker match justifies their classification.
+        sponsorship = job.get("sponsorship")
+        sponsor = companies.get(job.get("legal_name") or job.get("company"), {})
+        if sponsorship not in ("stated", "conditional") and not (
+            sponsorship == "potential" and sponsor.get("status") == "verified"
+        ):
+            continue
         if not recent(job.get("last_seen"), days=14):
             continue
         link = job.get("apply_url")
