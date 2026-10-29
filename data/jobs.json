@@ -4846,7 +4846,7 @@
       "verified_on": "2026-10-29",
       "posted_at": "",
       "last_seen": "2026-10-29",
-      "active": true,
+      "active": false,
       "review": "auto",
       "summary": "Financial services / relationship management — check employer advert for role-specific sponsorship and eligibility."
     },
@@ -7246,7 +7246,7 @@
       "verified_on": "2026-10-29",
       "posted_at": "",
       "last_seen": "2026-10-29",
-      "active": true,
+      "active": false,
       "review": "auto",
       "summary": "Technology / enterprise sales — check employer advert for role-specific sponsorship and eligibility."
     },
