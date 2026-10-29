@@ -3526,7 +3526,7 @@
       "verified_on": "2026-10-29",
       "posted_at": "",
       "last_seen": "2026-10-29",
-      "active": true,
+      "active": false,
       "review": "auto",
       "summary": "Financial services / payments — check employer advert for role-specific sponsorship and eligibility."
     },
@@ -6310,7 +6310,7 @@
       "verified_on": "2026-10-29",
       "posted_at": "",
       "last_seen": "2026-10-29",
-      "active": true,
+      "active": false,
       "review": "auto",
       "summary": "Banking / digital banking — check employer advert for role-specific sponsorship and eligibility."
     },
