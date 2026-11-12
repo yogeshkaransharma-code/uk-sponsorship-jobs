@@ -3694,7 +3694,7 @@
       "verified_on": "2026-11-12",
       "posted_at": "",
       "last_seen": "2026-11-12",
-      "active": true,
+      "active": false,
       "review": "auto",
       "summary": "Technology / enterprise sales — check employer advert for role-specific sponsorship and eligibility."
     },
@@ -6430,7 +6430,7 @@
       "verified_on": "2026-11-12",
       "posted_at": "",
       "last_seen": "2026-11-12",
-      "active": true,
+      "active": false,
       "review": "auto",
       "summary": "Banking / digital banking — check employer advert for role-specific sponsorship and eligibility."
     },
