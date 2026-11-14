@@ -1822,7 +1822,7 @@
       "verified_on": "2026-11-14",
       "posted_at": "2026-09-26",
       "last_seen": "2026-11-14",
-      "active": true,
+      "active": false,
       "review": "auto",
       "summary": "Insurance / technology — check employer advert for role-specific sponsorship and eligibility."
     },
@@ -2302,7 +2302,7 @@
       "verified_on": "2026-11-14",
       "posted_at": "2026-08-11",
       "last_seen": "2026-11-14",
-      "active": true,
+      "active": false,
       "review": "auto",
       "summary": "Insurance / technology — check employer advert for role-specific sponsorship and eligibility."
     },
